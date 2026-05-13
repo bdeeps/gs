@@ -1,8 +1,42 @@
 import { NextResponse } from "next/server";
+import { filenameForAudioBlob } from "@/lib/audioUpload";
 import { MAX_AUDIO_BYTES, TRANSCRIPTION_TIMEOUT_MS } from "@/lib/config";
 import { fetchWithTimeout, isAbortError } from "@/lib/http";
 
 export const runtime = "nodejs";
+
+async function readOpenAiError(response: Response): Promise<string> {
+  const raw = await response.text();
+  try {
+    const parsed = JSON.parse(raw) as { error?: { message?: string } };
+    if (typeof parsed?.error?.message === "string") {
+      return parsed.error.message;
+    }
+  } catch {
+    // ignore
+  }
+  return raw;
+}
+
+function transcribeUserMessage(status: number, detail: string): string {
+  const lower = detail.toLowerCase();
+  if (status === 401) {
+    return "Voice search is not fully set up yet. Please ask your administrator to verify the OpenAI API key on the server.";
+  }
+  if (status === 429) {
+    return "Too many voice requests at once. Please wait a few seconds and try again.";
+  }
+  if (status === 402 || status === 403) {
+    return "The voice service account needs billing or access enabled. Please contact your administrator.";
+  }
+  if (status === 400 && (lower.includes("format") || lower.includes("file") || lower.includes("invalid"))) {
+    return "This browser’s recording format was not accepted. Try Chrome or Safari, or update your browser, then try again.";
+  }
+  if (status >= 500) {
+    return "The transcription service is temporarily unavailable. Please try again.";
+  }
+  return "We could not turn that recording into text. Please try a clearer, slightly longer clip.";
+}
 
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY) {
@@ -51,7 +85,8 @@ export async function POST(request: Request) {
     "prompt",
     "This is Sikh Gurbani being recited in Punjabi/Gurmukhi."
   );
-  openAiForm.append("file", audio, "gurbani-recording.webm");
+  const uploadName = filenameForAudioBlob(audio);
+  openAiForm.append("file", audio, uploadName);
 
   try {
     const response = await fetchWithTimeout(
@@ -67,18 +102,30 @@ export async function POST(request: Request) {
     );
 
     if (!response.ok) {
+      const detail = await readOpenAiError(response);
+      console.error("[transcribe] OpenAI error", response.status, detail.slice(0, 500));
+      const error = transcribeUserMessage(response.status, detail);
       return NextResponse.json(
-        {
-          error:
-            "The transcription service is temporarily unavailable. Please try again."
-        },
+        { error },
         { status: response.status >= 500 ? 503 : response.status }
       );
     }
 
     const payload = (await response.json()) as { text?: string };
-    return NextResponse.json({ text: payload.text?.trim() || "" });
+    const text = payload.text?.trim() || "";
+    if (!text) {
+      return NextResponse.json(
+        {
+          error:
+            "No words were detected in that clip. Try speaking a little louder, closer to the microphone, or for one or two seconds longer."
+        },
+        { status: 422 }
+      );
+    }
+
+    return NextResponse.json({ text });
   } catch (error) {
+    console.error("[transcribe] request failed", error);
     const message = isAbortError(error)
       ? "Transcription took too long. Please try a shorter recording."
       : "Transcription failed. Please try again.";

@@ -34,6 +34,25 @@ export function VoiceRecorder({
     }
   }
 
+  function pickRecorderMimeType(): string | undefined {
+    if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) {
+      return undefined;
+    }
+    const candidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+      "audio/mp4;codecs=mp4a.40.2",
+      "audio/mp4;codecs=mp4a.40.5"
+    ];
+    for (const mime of candidates) {
+      if (MediaRecorder.isTypeSupported(mime)) {
+        return mime;
+      }
+    }
+    return undefined;
+  }
+
   async function startRecording() {
     setError(null);
 
@@ -47,7 +66,10 @@ export function VoiceRecorder({
       streamRef.current = stream;
       chunksRef.current = [];
 
-      const recorder = new MediaRecorder(stream);
+      const mimeType = pickRecorderMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       recorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
@@ -65,7 +87,7 @@ export function VoiceRecorder({
         await onRecordingComplete(audio);
       };
 
-      recorder.start();
+      recorder.start(250);
       setIsRecording(true);
       timeoutRef.current = setTimeout(() => {
         setError("Recording stopped at 45 seconds to keep live search reliable.");

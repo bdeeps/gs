@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { filenameForAudioBlob } from "@/lib/audioUpload";
 import { VerseCard } from "@/components/VerseCard";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import type { SearchResponse, VerseSearchResult } from "@/lib/types";
@@ -21,7 +22,7 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append("audio", audio, "gurbani-recording.webm");
+      formData.append("audio", audio, filenameForAudioBlob(audio));
 
       const transcriptionResponse = await fetch("/api/transcribe", {
         method: "POST",
@@ -33,8 +34,12 @@ export default function Home() {
         error?: string;
       };
 
-      if (!transcriptionResponse.ok || !transcription.text) {
+      if (!transcriptionResponse.ok) {
         throw new Error(transcription.error || "Could not transcribe the recording.");
+      }
+
+      if (!transcription.text?.trim()) {
+        throw new Error("No words were detected. Please try again with a clearer recording.");
       }
 
       setTranscript(transcription.text);
