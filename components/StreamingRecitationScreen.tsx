@@ -85,7 +85,7 @@ export function StreamingRecitationScreen({
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const scrollAnchorRef = useRef<HTMLLIElement>(null);
+  const scrollAnchorRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
 
   /* ── cleanup helpers ─────────────────────────────────────── */
