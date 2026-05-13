@@ -150,6 +150,7 @@ async function readJsonLines(filePath: string) {
  *   SEED_OFFSET — skip this many verses after loading (resume overnight runs).
  *   SEED_LIMIT — cap how many verses to process from that offset.
  *   SEED_DELAY_MS — optional pause after each verse to reduce Hugging Face 429s.
+ *   SEED_EMBED_RETRIES — max attempts per verse on embed/DB failure (default 8, exponential backoff).
  */
 const SHABADOS_SELECT_SQL = `
   SELECT
@@ -277,6 +278,31 @@ async function insertVerse(verse: SeedVerse) {
   );
 }
 
+/**
+ * Hugging Face can time out or rate-limit on long runs; retry with backoff
+ * instead of aborting the whole overnight job.
+ */
+async function insertVerseWithRetry(verse: SeedVerse) {
+  const maxRetries = Math.max(1, numberValue(process.env.SEED_EMBED_RETRIES) ?? 8);
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    try {
+      await insertVerse(verse);
+      return;
+    } catch (error) {
+      lastError = error;
+      const msg = error instanceof Error ? error.message : String(error);
+      const waitMs = Math.min(120_000, 2_000 * 2 ** (attempt - 1));
+      console.warn(
+        `[seed] verse ${verse.id} attempt ${attempt}/${maxRetries} failed: ${msg} — waiting ${waitMs}ms`
+      );
+      if (attempt === maxRetries) break;
+      await sleep(waitMs);
+    }
+  }
+  throw lastError;
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -302,7 +328,7 @@ async function main() {
   }
 
   for (let index = 0; index < selected.length; index += 1) {
-    await insertVerse(selected[index]);
+    await insertVerseWithRetry(selected[index]);
 
     if ((index + 1) % 25 === 0 || index === selected.length - 1) {
       console.log(`Seeded ${index + 1}/${selected.length}`);
