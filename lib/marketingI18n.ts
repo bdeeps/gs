@@ -1,3 +1,6 @@
+import type { ListeningScreenCopy } from "@/components/ListeningScreen";
+import type { StreamingRecitationCopy } from "@/components/StreamingRecitationScreen";
+
 export type MarketingLang = "en" | "pa" | "hi";
 
 export const MARKETING_LANG_OPTIONS: { id: MarketingLang; label: string }[] = [
@@ -44,6 +47,8 @@ export type MarketingStrings = {
     timeout: string;
     ariaListening: string;
   };
+  listening: ListeningScreenCopy;
+  streaming: StreamingRecitationCopy;
 };
 
 const STRINGS: Record<MarketingLang, MarketingStrings> = {
@@ -122,6 +127,43 @@ const STRINGS: Record<MarketingLang, MarketingStrings> = {
       browserNoMic: "Your browser does not support microphone recording.",
       timeout: "Recording stopped at 45 seconds to keep live search reliable.",
       ariaListening: "Listening"
+    },
+    listening: {
+      title: "Live Demonstration",
+      subtitle: "Full listening screen",
+      close: "Close",
+      openButton: "Open full listening screen (waveform and timer)",
+      startRecording: "Start recording",
+      stopRecording: "Stop",
+      progressLabel:
+        "The waveform, clock, and bar below update live. Recite one clear Gurbani line; recording stops at 45 seconds.",
+      micWaiting: "Waiting for your voice...",
+      micReceiving: "Microphone is receiving audio",
+      limitInfo: "Recording window",
+      limitReached: "Recording stopped at 45 seconds to keep live search reliable.",
+      tooShort: "That clip was too short. Try again with a slightly longer, clearer recording.",
+      micBlocked: "Microphone access was blocked or unavailable.",
+      browserNoMic: "Your browser does not support microphone recording."
+    },
+    streaming: {
+      title: "Live streaming",
+      subtitle: "Verses as you recite",
+      close: "Close",
+      openButton: "Open live streaming (verses while you recite)",
+      startButton: "Start live session",
+      stopButton: "Stop session",
+      liveTranscriptHeading: "Latest transcription",
+      emptyTimeline:
+        "Recognized Gurbani will appear here verse by verse. Keep reciting clearly; the list scrolls as new lines match.",
+      workingTranscribe: "Transcribing…",
+      workingSearch: "Finding verses…",
+      matchLabel: "Matched line",
+      translationHeading: "English meaning",
+      micBlocked: "Microphone access was blocked or unavailable.",
+      browserNoMic: "Your browser does not support microphone recording.",
+      limitReached: "Recording stopped at 45 seconds to keep live search reliable.",
+      sessionHint:
+        "Audio is sent in short segments while you speak. Each pass updates the transcript and may add the next closest verse when it changes."
     }
   },
   pa: {
@@ -199,6 +241,43 @@ const STRINGS: Record<MarketingLang, MarketingStrings> = {
       browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।",
       timeout: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
       ariaListening: "ਸੁਣ ਰਹੇ ਹਾਂ"
+    },
+    listening: {
+      title: "ਲਾਈਵ ਨਮੂਨਾ",
+      subtitle: "ਪੂਰੀ ਸੁਣਨ ਵਾਲੀ ਸਕ੍ਰੀਨ",
+      close: "ਬੰਦ ਕਰੋ",
+      openButton: "ਲਾਈਵ ਤਰੱਕੀ ਨਾਲ ਪੂਰੀ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹੋ",
+      startRecording: "ਰਿਕਾਰਡ ਸ਼ੁਰੂ",
+      stopRecording: "ਰੋਕੋ",
+      progressLabel:
+        "ਲਹਿਰ, ਘੜੀ ਅਤੇ ਹੇਠਲੀ ਪੱਟੀ ਲਾਈਵ ਅੱਪਡੇਟ ਹੁੰਦੀਆਂ ਹਨ। ਇੱਕ ਸਾਫ਼ ਗੁਰਬਾਣੀ ਪੰਕਤੀ ਬੋਲੋ; ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਜਾਵੇਗੀ।",
+      micWaiting: "ਤੁਹਾਡੀ ਆਵਾਜ਼ ਦੀ ਉਡੀਕ...",
+      micReceiving: "ਮਾਈਕ ਆਵਾਜ਼ ਲੈ ਰਿਹਾ ਹੈ",
+      limitInfo: "ਰਿਕਾਰਡਿੰਗ ਸਮਾਂ",
+      limitReached: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
+      tooShort: "ਕਲਿਪ ਬਹੁਤ ਛੋਟੀ ਸੀ। ਥੋੜ੍ਹੀ ਲੰਮੀ ਅਤੇ ਸਾਫ਼ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+      micBlocked: "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
+      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।"
+    },
+    streaming: {
+      title: "ਲਾਈਵ ਸਟ੍ਰੀਮਿੰਗ",
+      subtitle: "ਉਚਾਰਨ ਅਨੁਸਾਰ ਪੰਕਤੀਆਂ",
+      close: "ਬੰਦ ਕਰੋ",
+      openButton: "ਲਾਈਵ ਸਟ੍ਰੀਮਿੰਗ ਖੋਲ੍ਹੋ (ਪੜ੍ਹਦੇ ਜਾਓ, ਪੰਕਤੀਆਂ ਆਉਂਦੀਆਂ ਜਾਣਗੀਆਂ)",
+      startButton: "ਲਾਈਵ ਸੈਸ਼ਨ ਸ਼ੁਰੂ",
+      stopButton: "ਸੈਸ਼ਨ ਰੋਕੋ",
+      liveTranscriptHeading: "ਨਵੀਨਤਮ ਲਿਖਤ",
+      emptyTimeline:
+        "ਪਛਾਣ ਹੋਈ ਗੁਰਬਾਣੀ ਇੱਥੇ ਹਰ ਪੰਕਤੀ ਬਦਲਣ ਤੇ ਦਿਖੇਗੀ। ਸਾਫ਼ ਪੜ੍ਹਦੇ ਰਹੋ; ਨਵੀਆਂ ਮਿਲਾਂਦੀਆਂ ਪੰਕਤੀਆਂ ਹੇਠਾਂ ਸਕ੍ਰੋਲ ਹੋਣਗੀਆਂ।",
+      workingTranscribe: "ਲਿਖੀ ਜਾ ਰਹੀ ਹੈ…",
+      workingSearch: "ਪੰਕਤੀਆਂ ਲੱਭ ਰਹੀਆਂ ਹਨ…",
+      matchLabel: "ਮਿਲਦੀ ਪੰਕਤੀ",
+      translationHeading: "ਅੰਗਰੇਜ਼ੀ ਅਰਥ",
+      micBlocked: "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
+      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।",
+      limitReached: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
+      sessionHint:
+        "ਤੁਸੀਂ ਬੋਲਦੇ ਰਹੋਗੇ ਤਾਂ ਛੋਟੇ-ਛੋਟੇ ਹਿੱਸੇ ਭੇਜੇ ਜਾਂਦੇ ਹਨ। ਹਰ ਵਾਰ ਲਿਖਤ ਅੱਪਡੇਟ ਹੋ ਸਕਦੀ ਹੈ ਅਤੇ ਜਦੋਂ ਨੇੜਲੀ ਪੰਕਤੀ ਬਦਲਦੀ ਹੈ ਤਾਂ ਇੱਥੇ ਨਵੀਂ ਕਤਾਰ ਜੁੜਦੀ ਹੈ।"
     }
   },
   hi: {
@@ -276,6 +355,43 @@ const STRINGS: Record<MarketingLang, MarketingStrings> = {
       browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।",
       timeout: "लाइव खोज के लिए ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
       ariaListening: "सुन रहे हैं"
+    },
+    listening: {
+      title: "लाइव नमूना",
+      subtitle: "पूर्ण सुनने वाली स्क्रीन",
+      close: "बंद करें",
+      openButton: "लाइव प्रगति के साथ पूर्ण स्क्रीन खोलें",
+      startRecording: "रिकॉर्ड शुरू",
+      stopRecording: "रोकें",
+      progressLabel:
+        "तरंग, घड़ी और नीचे की पट्टी लाइव अपडेट होती हैं। एक स्पष्ट गुरबाणी पंक्ति बोलें; ४५ सेकंड पर रिकॉर्डिंग रुक जाएगी।",
+      micWaiting: "आपकी आवाज़ की प्रतीक्षा...",
+      micReceiving: "माइक्रोफ़ोन आवाज़ ले रहा है",
+      limitInfo: "रिकॉर्डिंग खिड़की",
+      limitReached: "लाइव खोज के लिए ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
+      tooShort: "अंश बहुत छोटा था। थोड़ा लंबा और स्पष्ट फिर से प्रयास करें।",
+      micBlocked: "माइक्रोफ़ोन की अनुमति नहीं मिली या उपलब्ध नहीं है।",
+      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।"
+    },
+    streaming: {
+      title: "लाइव स्ट्रीमिंग",
+      subtitle: "उच्चारण के साथ पंक्तियाँ",
+      close: "बंद करें",
+      openButton: "लाइव स्ट्रीमिंग खोलें (पढ़ते रहें, पंक्तियाँ आती रहेंगी)",
+      startButton: "लाइव सत्र शुरू",
+      stopButton: "सत्र रोकें",
+      liveTranscriptHeading: "नवीनतम लिप्यंतरण",
+      emptyTimeline:
+        "पहचानी गई गुरबाणी यहाँ पंक्ति दर पंक्ति दिखेगी। स्पष्ट पढ़ते रहें; नई मिलती पंक्तियाँ नीचे स्क्रॉल होंगी।",
+      workingTranscribe: "लिखा जा रहा है…",
+      workingSearch: "पंक्तियाँ ढूँढी जा रही हैं…",
+      matchLabel: "मिलान वाली पंक्ति",
+      translationHeading: "अंग्रेज़ी अर्थ",
+      micBlocked: "माइक्रोफ़ोन की अनुमति नहीं मिली या उपलब्ध नहीं है।",
+      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।",
+      limitReached: "लाइव खोज के लिए ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
+      sessionHint:
+        "बोलते समय छोटे-छोटे भाग भेजे जाते हैं। हर बार लिप्यंतरण अपडेट हो सकता है और जब निकटतम पंक्ति बदलती है तो यहाँ नई पंक्ति जुड़ती है।"
     }
   }
 };

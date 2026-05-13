@@ -1,6 +1,7 @@
 export const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 export const MAX_QUERY_CHARS = 600;
-export const TRANSCRIPTION_TIMEOUT_MS = 45_000;
+/** Longer clips (and cumulative streaming buffers) often need more wall time than audio duration. */
+export const TRANSCRIPTION_TIMEOUT_MS = 90_000;
 export const EMBEDDING_TIMEOUT_MS = 30_000;
 export const SEARCH_TIMEOUT_MS = 20_000;
 export const DEFAULT_SEARCH_LIMIT = 5;
