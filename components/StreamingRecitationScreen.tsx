@@ -173,15 +173,39 @@ export function StreamingRecitationScreen({
     });
   }, [lastTimelineKey, open]);
 
+  /* ── background Hindi translation ────────────────────────── */
+
+  const fetchHindi = useCallback((key: string, englishText: string) => {
+    fetch("/api/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: englishText }),
+    })
+      .then((r) => r.json())
+      .then((data: { translatedText?: string | null }) => {
+        if (!data.translatedText) return;
+        setTimeline((prev) =>
+          prev.map((e) =>
+            e.key === key ? { ...e, verse: { ...e.verse, translationHi: data.translatedText! } } : e
+          )
+        );
+      })
+      .catch(() => {});
+  }, []);
+
   /* ── verse dedup + append ────────────────────────────────── */
 
   const appendIfNewVerse = useCallback((verse: VerseSearchResult | undefined, heard: string) => {
     if (!verse || verse.score < MIN_SCORE_TO_SHOW) return;
     setTimeline((prev) => {
       if (prev[prev.length - 1]?.verse.id === verse.id) return prev;
-      return [...prev, { key: `${verse.id}-${prev.length}-${Date.now()}`, verse, heardTranscript: heard.trim().slice(0, 400) }];
+      const key = `${verse.id}-${prev.length}-${Date.now()}`;
+      if (verse.translation && !verse.translationHi) {
+        setTimeout(() => fetchHindi(key, verse.translation!), 0);
+      }
+      return [...prev, { key, verse, heardTranscript: heard.trim().slice(0, 400) }];
     });
-  }, []);
+  }, [fetchHindi]);
 
   /* ── live API ────────────────────────────────────────────── */
 

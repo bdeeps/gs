@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { MAX_AUDIO_BYTES } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
 import { transcribeAudio, TranscriptionError } from "@/lib/transcribe";
-import { translateToHindi } from "@/lib/translate";
 import type { VerseSearchResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -57,23 +56,7 @@ export async function POST(request: Request) {
     const topScore = results[0]?.score ?? 0;
     console.log("[live] top result score:", topScore.toFixed(4), "verse:", results[0]?.gurmukhi?.slice(0, 60) ?? "none");
 
-    const LIVE_TRANSLATE_MS = 2_000;
-    const translated = await Promise.all(
-      results.map((r) =>
-        r.translation
-          ? Promise.race([
-              translateToHindi(r.translation),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), LIVE_TRANSLATE_MS)),
-            ])
-          : Promise.resolve(null)
-      )
-    );
-    const enriched: VerseSearchResult[] = results.map((r, i) => ({
-      ...r,
-      translationHi: translated[i],
-    }));
-
-    return NextResponse.json({ text, results: enriched });
+    return NextResponse.json({ text, results });
   } catch (error) {
     if (error instanceof TranscriptionError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
