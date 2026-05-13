@@ -61,6 +61,7 @@ export async function searchVerses(
     gurmukhi: row.gurmukhi,
     transliteration: row.transliteration,
     translation: row.translation,
+    translationHi: null,
     ang: row.ang,
     raag: row.raag,
     author: row.author,

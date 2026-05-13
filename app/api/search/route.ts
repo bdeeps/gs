@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { MAX_QUERY_CHARS, trimForSearch } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
+import { translateToHindi } from "@/lib/translate";
+import type { VerseSearchResult } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -29,7 +31,18 @@ export async function POST(request: Request) {
 
   try {
     const results = await searchVerses(query, 5);
-    return NextResponse.json({ query, results });
+
+    const translated = await Promise.all(
+      results.map((r) =>
+        r.translation ? translateToHindi(r.translation) : Promise.resolve(null)
+      )
+    );
+    const enriched: VerseSearchResult[] = results.map((r, i) => ({
+      ...r,
+      translationHi: translated[i],
+    }));
+
+    return NextResponse.json({ query, results: enriched });
   } catch (error) {
     console.error("Search failed", error);
     return NextResponse.json(

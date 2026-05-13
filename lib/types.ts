@@ -5,6 +5,7 @@ export type Verse = {
   gurmukhi: string;
   transliteration: string | null;
   translation: string | null;
+  translationHi: string | null;
   ang: number | null;
   raag: string | null;
   author: string | null;
