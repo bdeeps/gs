@@ -2,6 +2,8 @@ import { filenameForAudioBlob } from "./audioUpload";
 import { TRANSCRIPTION_TIMEOUT_MS } from "./config";
 import { fetchWithTimeout, isAbortError } from "./http";
 
+const SARVAM_TIMEOUT_MS = 20_000;
+
 /**
  * Whisper echoes fragments of its own prompt when it hears silence or noise.
  * Any transcription containing these English fragments is garbage — not Gurbani.
@@ -36,15 +38,22 @@ type SarvamResponse = {
   error?: { message?: string; code?: string };
 };
 
+function cleanMimeType(blob: Blob): Blob {
+  const raw = (blob.type || "").split(";")[0].trim() || "audio/webm";
+  if (raw === blob.type) return blob;
+  return new Blob([blob], { type: raw });
+}
+
 async function transcribeSarvam(audio: Blob): Promise<string> {
   const apiKey = process.env.SARVAM_API_KEY;
   if (!apiKey) return "";
 
+  const clean = cleanMimeType(audio);
   const form = new FormData();
   form.append("model", "saaras:v3");
   form.append("mode", "transcribe");
   form.append("language_code", "pa-IN");
-  form.append("file", audio, filenameForAudioBlob(audio));
+  form.append("file", clean, filenameForAudioBlob(audio));
 
   try {
     const response = await fetchWithTimeout(
@@ -54,7 +63,7 @@ async function transcribeSarvam(audio: Blob): Promise<string> {
         headers: { "api-subscription-key": apiKey },
         body: form
       },
-      TRANSCRIPTION_TIMEOUT_MS
+      SARVAM_TIMEOUT_MS
     );
 
     if (!response.ok) {
