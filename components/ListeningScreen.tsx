@@ -40,7 +40,7 @@ function formatClock(ms: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function rmsFromTimeDomain(data: Uint8Array) {
+function rmsFromTimeDomain(data: Uint8Array<ArrayBuffer>) {
   let sum = 0;
   for (let i = 0; i < data.length; i += 1) {
     const v = (data[i] - 128) / 128;
@@ -67,7 +67,7 @@ export function ListeningScreen({
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rafRef = useRef<number>(0);
   const startTsRef = useRef<number>(0);
-  const timeDomainRef = useRef<Uint8Array | null>(null);
+  const timeDomainRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
   const [recording, setRecording] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -145,7 +145,7 @@ export function ListeningScreen({
     const h = canvas.height;
     const td = timeDomainRef.current;
     if (!td || td.length !== analyser.fftSize) {
-      timeDomainRef.current = new Uint8Array(analyser.fftSize);
+      timeDomainRef.current = new Uint8Array<ArrayBuffer>(analyser.fftSize);
     }
     const buf = timeDomainRef.current!;
     analyser.getByteTimeDomainData(buf);
