@@ -46,7 +46,7 @@ function buildOpenAiForm(audio: Blob, language?: string) {
   }
   openAiForm.append(
     "prompt",
-    "This is Sikh Gurbani being recited in Punjabi/Gurmukhi."
+    "This is Sikh Gurbani being recited in Punjabi. Return transcription in clear Gurmukhi script."
   );
   openAiForm.append("file", audio, filenameForAudioBlob(audio));
   return openAiForm;

@@ -1,4 +1,5 @@
 import type { VerseSearchResult } from "@/lib/types";
+import { toDisplayGurmukhi } from "@/lib/gurbaniScript";
 
 export type VerseCardLabels = {
   resultRank: (rank: number) => string;
@@ -28,6 +29,7 @@ export function VerseCard({ result, rank, labels }: VerseCardProps) {
     scoreUnknown: "Match"
   };
   const L = labels ?? defaultLabels;
+  const gurmukhiDisplay = toDisplayGurmukhi(result.gurmukhi);
   const metadata = [
     result.ang ? `Ang ${result.ang}` : null,
     result.raag,
@@ -47,7 +49,7 @@ export function VerseCard({ result, rank, labels }: VerseCardProps) {
       </div>
 
       <p className="font-gurmukhi text-3xl leading-relaxed text-stone-950 sm:text-4xl">
-        {result.gurmukhi}
+        {gurmukhiDisplay}
       </p>
 
       {result.transliteration ? (

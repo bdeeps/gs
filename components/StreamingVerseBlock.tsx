@@ -1,4 +1,5 @@
 import type { VerseSearchResult } from "@/lib/types";
+import { toDisplayGurmukhi } from "@/lib/gurbaniScript";
 
 type StreamingVerseBlockProps = {
   verse: VerseSearchResult;
@@ -15,6 +16,7 @@ export function StreamingVerseBlock({
   translationHeading,
   langClass = ""
 }: StreamingVerseBlockProps) {
+  const gurmukhiDisplay = toDisplayGurmukhi(verse.gurmukhi);
   const metadata = [
     verse.ang ? `Ang ${verse.ang}` : null,
     verse.raag,
@@ -44,7 +46,7 @@ export function StreamingVerseBlock({
       ) : null}
 
       <p className={`font-gurmukhi text-2xl leading-[1.85] text-stone-950 sm:text-3xl sm:leading-[1.9] ${langClass}`}>
-        {verse.gurmukhi}
+        {gurmukhiDisplay}
       </p>
 
       {verse.transliteration ? (

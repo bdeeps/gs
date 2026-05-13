@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
-import { ListeningScreen } from "@/components/ListeningScreen";
-import { StreamingRecitationScreen } from "@/components/StreamingRecitationScreen";
 import { VerseCard } from "@/components/VerseCard";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import {
@@ -21,8 +20,6 @@ export default function Home() {
   const [transcript, setTranscript] = useState("");
   const [results, setResults] = useState<VerseSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [listeningOpen, setListeningOpen] = useState(false);
-  const [streamingOpen, setStreamingOpen] = useState(false);
 
   async function handleRecording(audio: Blob) {
     setStatus("transcribing");
@@ -92,8 +89,6 @@ export default function Home() {
   const m = useMemo(() => getMarketingStrings(lang), [lang]);
 
   const isBusy = status === "transcribing" || status === "searching";
-
-  const demoLangClass = lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : "";
 
   return (
     <main
@@ -213,49 +208,19 @@ export default function Home() {
             </div>
 
             <VoiceRecorder
-              disabled={isBusy || listeningOpen || streamingOpen}
+              disabled={isBusy}
               labels={m.voice}
               onRecordingComplete={handleRecording}
             />
 
-            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-              <button
-                type="button"
-                disabled={isBusy || streamingOpen}
-                onClick={() => setListeningOpen(true)}
-                className={`rounded-full border-2 border-orange-400 bg-white px-5 py-2.5 text-sm font-bold text-orange-950 shadow-md transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50 ${demoLangClass}`}
-              >
-                {m.listening.openButton}
-              </button>
-              <button
-                type="button"
-                disabled={isBusy || listeningOpen}
-                onClick={() => setStreamingOpen(true)}
-                className={`rounded-full border-2 border-orange-700 bg-orange-50 px-5 py-2.5 text-sm font-bold text-orange-950 shadow-md transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50 ${demoLangClass}`}
+            <div className="mt-6 text-center">
+              <Link
+                href="/live"
+                className="inline-flex rounded-full border-2 border-orange-700 bg-orange-50 px-5 py-2.5 text-sm font-bold text-orange-950 shadow-md transition hover:bg-orange-100"
               >
                 {m.streaming.openButton}
-              </button>
+              </Link>
             </div>
-
-            <ListeningScreen
-              open={listeningOpen}
-              disabled={isBusy}
-              copy={m.listening}
-              langClass={demoLangClass}
-              onClose={() => setListeningOpen(false)}
-              onComplete={(blob) => {
-                setListeningOpen(false);
-                void handleRecording(blob);
-              }}
-            />
-
-            <StreamingRecitationScreen
-              open={streamingOpen}
-              disabled={isBusy}
-              copy={m.streaming}
-              langClass={demoLangClass}
-              onClose={() => setStreamingOpen(false)}
-            />
 
             <div className="mt-8 rounded-2xl bg-orange-950 px-5 py-4 text-center text-sm text-orange-50">
               {status === "transcribing" ? (
