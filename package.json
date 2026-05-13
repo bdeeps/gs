@@ -12,7 +12,8 @@
     "start:web": "next start",
     "lint": "eslint .",
     "db:schema": "node scripts/apply-schema.mjs",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:seed:sggs": "SEED_SOURCE_ID=1 tsx scripts/seed.ts"
   },
   "dependencies": {
     "better-sqlite3": "latest",

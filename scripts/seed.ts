@@ -143,8 +143,15 @@ async function readJsonLines(filePath: string) {
  *   translations → line_id, translation_source_id, translation
  *   translation_sources → source_id, language_id   (English = language_id 1)
  *   writers     → name_english
+ *
+ * Env:
+ *   SEED_SOURCE_ID — optional positive integer (e.g. 1 = Sri Guru Granth Sahib Ji only).
+ *     Omit or set "all" to index every line in the SQLite file (~141k lines).
+ *   SEED_OFFSET — skip this many verses after loading (resume overnight runs).
+ *   SEED_LIMIT — cap how many verses to process from that offset.
+ *   SEED_DELAY_MS — optional pause after each verse to reduce Hugging Face 429s.
  */
-const DEFAULT_SHABADOS_QUERY = `
+const SHABADOS_SELECT_SQL = `
   SELECT
     l.id,
     l.shabad_id,
@@ -164,12 +171,27 @@ const DEFAULT_SHABADOS_QUERY = `
       LIMIT 1
     )
   LEFT JOIN writers w ON w.id = s.writer_id
-  ORDER BY l.order_id
 `;
+
+function resolveShabadosSqlQuery(): string {
+  if (process.env.SHABADOS_LINES_QUERY) {
+    return process.env.SHABADOS_LINES_QUERY;
+  }
+
+  const raw = process.env.SEED_SOURCE_ID?.trim();
+  if (raw && raw.toLowerCase() !== "all") {
+    const sourceId = Number(raw);
+    if (Number.isInteger(sourceId) && sourceId > 0) {
+      return `${SHABADOS_SELECT_SQL.trim()}\n  WHERE s.source_id = ${sourceId}\n  ORDER BY l.order_id`;
+    }
+  }
+
+  return `${SHABADOS_SELECT_SQL.trim()}\n  ORDER BY l.order_id`;
+}
 
 function readSqliteLines(filePath: string) {
   const db = new Database(filePath, { readonly: true });
-  const query = process.env.SHABADOS_LINES_QUERY || DEFAULT_SHABADOS_QUERY;
+  const query = resolveShabadosSqlQuery();
 
   try {
     return db.prepare(query).all() as RawLine[];
@@ -255,19 +277,39 @@ async function insertVerse(verse: SeedVerse) {
   );
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function main() {
   const rows = await loadLines();
-  const limit = numberValue(process.env.SEED_LIMIT);
   const verses = rows.map(mapLine).filter((verse): verse is SeedVerse => Boolean(verse));
-  const selected = limit ? verses.slice(0, limit) : verses;
 
-  console.log(`Seeding ${selected.length} verses into pgvector...`);
+  const offsetRaw = numberValue(process.env.SEED_OFFSET);
+  const offset = offsetRaw !== null && offsetRaw > 0 ? Math.floor(offsetRaw) : 0;
+  const limit = numberValue(process.env.SEED_LIMIT);
+  const end = limit !== null && limit > 0 ? offset + Math.floor(limit) : undefined;
+  const selected = verses.slice(offset, end);
+
+  const delayMs = numberValue(process.env.SEED_DELAY_MS);
+  const delay = delayMs !== null && delayMs > 0 ? delayMs : 0;
+
+  console.log(
+    `Seeding ${selected.length} verses into pgvector (offset ${offset}${limit ? `, limit ${limit}` : ""})...`
+  );
+  if (verses.length > selected.length) {
+    console.log(`Total loaded: ${verses.length} — run again with SEED_OFFSET=${offset + selected.length} to resume.`);
+  }
 
   for (let index = 0; index < selected.length; index += 1) {
     await insertVerse(selected[index]);
 
     if ((index + 1) % 25 === 0 || index === selected.length - 1) {
       console.log(`Seeded ${index + 1}/${selected.length}`);
+    }
+
+    if (delay > 0) {
+      await sleep(delay);
     }
   }
 
