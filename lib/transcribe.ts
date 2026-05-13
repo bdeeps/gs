@@ -28,6 +28,58 @@ export class TranscriptionError extends Error {
   }
 }
 
+/* ── Sarvam AI (Saaras v3) ─────────────────────────────────── */
+
+type SarvamResponse = {
+  transcript?: string;
+  language_code?: string;
+  error?: { message?: string; code?: string };
+};
+
+async function transcribeSarvam(audio: Blob): Promise<string> {
+  const apiKey = process.env.SARVAM_API_KEY;
+  if (!apiKey) return "";
+
+  const form = new FormData();
+  form.append("model", "saaras:v3");
+  form.append("mode", "transcribe");
+  form.append("language_code", "pa-IN");
+  form.append("file", audio, filenameForAudioBlob(audio));
+
+  try {
+    const response = await fetchWithTimeout(
+      "https://api.sarvam.ai/speech-to-text",
+      {
+        method: "POST",
+        headers: { "api-subscription-key": apiKey },
+        body: form
+      },
+      TRANSCRIPTION_TIMEOUT_MS
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as SarvamResponse;
+      const msg = payload.error?.message || `Sarvam returned ${response.status}`;
+      console.warn("[sarvam] error:", response.status, msg);
+      return "";
+    }
+
+    const payload = (await response.json()) as SarvamResponse;
+    const text = payload.transcript?.trim() || "";
+    console.log("[sarvam] transcript:", text.slice(0, 120), "lang:", payload.language_code);
+    return text;
+  } catch (error) {
+    if (isAbortError(error)) {
+      console.warn("[sarvam] request timed out");
+    } else {
+      console.warn("[sarvam] request failed:", error instanceof Error ? error.message : error);
+    }
+    return "";
+  }
+}
+
+/* ── OpenAI Whisper ─────────────────────────────────────────── */
+
 async function readOpenAiError(response: Response): Promise<string> {
   const raw = await response.text();
   try {
@@ -44,7 +96,7 @@ async function readOpenAiError(response: Response): Promise<string> {
 function userMessage(status: number, detail: string): string {
   const lower = detail.toLowerCase();
   if (status === 401) {
-    return "Voice search is not fully set up yet. Please ask your administrator to verify the OpenAI API key on the server.";
+    return "Voice search is not fully set up yet. Please ask your administrator to verify the API key on the server.";
   }
   if (status === 429) {
     return "Too many voice requests at once. Please wait a few seconds and try again.";
@@ -61,7 +113,7 @@ function userMessage(status: number, detail: string): string {
   return "We could not turn that recording into text. Please try a clearer, slightly longer clip.";
 }
 
-function buildForm(audio: Blob, language?: string) {
+function buildWhisperForm(audio: Blob, language?: string) {
   const form = new FormData();
   form.append("model", "whisper-1");
   if (language) form.append("language", language);
@@ -90,46 +142,55 @@ function callWhisper(form: FormData) {
   );
 }
 
-/**
- * Transcribe an audio blob via OpenAI Whisper.
- * Returns the trimmed text (may be empty if no speech detected).
- * Throws {@link TranscriptionError} with a user-friendly message on failure.
- */
-export async function transcribeAudio(audio: Blob): Promise<string> {
+async function transcribeWhisper(audio: Blob): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
-    throw new TranscriptionError("OPENAI_API_KEY is not configured.", 500);
+    throw new TranscriptionError("No transcription API key is configured.", 500);
   }
 
   const lang = process.env.OPENAI_TRANSCRIBE_LANGUAGE?.trim() || "pa";
 
+  let response = await callWhisper(buildWhisperForm(audio, lang));
+  let detail = "";
+
+  if (!response.ok) {
+    detail = await readOpenAiError(response);
+    if (isUnsupportedLanguageError(response.status, detail)) {
+      console.warn("[whisper] language hint rejected, retrying without language", lang);
+      response = await callWhisper(buildWhisperForm(audio));
+    }
+  }
+
+  if (!response.ok) {
+    const finalDetail = detail || (await readOpenAiError(response));
+    console.error("[whisper] error", response.status, finalDetail.slice(0, 500));
+    throw new TranscriptionError(
+      userMessage(response.status, finalDetail),
+      response.status >= 500 ? 503 : response.status
+    );
+  }
+
+  const payload = (await response.json()) as { text?: string };
+  const text = payload.text?.trim() || "";
+  if (text && isPromptEcho(text)) {
+    console.warn("[whisper] filtered prompt echo:", text.slice(0, 80));
+    return "";
+  }
+  return text;
+}
+
+/* ── Public API ─────────────────────────────────────────────── */
+
+/**
+ * Transcribe an audio blob. Uses Sarvam Saaras v3 as primary (optimized for
+ * Indian languages / Punjabi), falling back to OpenAI Whisper if Sarvam is
+ * unavailable or returns empty.
+ */
+export async function transcribeAudio(audio: Blob): Promise<string> {
+  const sarvamText = await transcribeSarvam(audio);
+  if (sarvamText) return sarvamText;
+
   try {
-    let response = await callWhisper(buildForm(audio, lang));
-    let detail = "";
-
-    if (!response.ok) {
-      detail = await readOpenAiError(response);
-      if (isUnsupportedLanguageError(response.status, detail)) {
-        console.warn("[transcribe] language hint rejected, retrying without language", lang);
-        response = await callWhisper(buildForm(audio));
-      }
-    }
-
-    if (!response.ok) {
-      const finalDetail = detail || (await readOpenAiError(response));
-      console.error("[transcribe] OpenAI error", response.status, finalDetail.slice(0, 500));
-      throw new TranscriptionError(
-        userMessage(response.status, finalDetail),
-        response.status >= 500 ? 503 : response.status
-      );
-    }
-
-    const payload = (await response.json()) as { text?: string };
-    const text = payload.text?.trim() || "";
-    if (text && isPromptEcho(text)) {
-      console.warn("[transcribe] filtered prompt echo:", text.slice(0, 80));
-      return "";
-    }
-    return text;
+    return await transcribeWhisper(audio);
   } catch (error) {
     if (error instanceof TranscriptionError) throw error;
     console.error("[transcribe] request failed", error);
