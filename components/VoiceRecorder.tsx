@@ -1,18 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { MarketingStrings } from "@/lib/marketingI18n";
 
 type VoiceRecorderProps = {
   disabled?: boolean;
   maxDurationMs?: number;
+  /** When set, overrides default English mic / button strings */
+  labels?: MarketingStrings["voice"];
   onRecordingComplete: (audio: Blob) => Promise<void> | void;
+};
+
+const defaultVoice: MarketingStrings["voice"] = {
+  listen: "Listen",
+  stop: "Stop",
+  hintIdle: "Tap to record one clear Gurbani line, up to 45 seconds.",
+  hintRecording: "Listening with reverence...",
+  micBlocked: "Microphone access was blocked or unavailable.",
+  browserNoMic: "Your browser does not support microphone recording.",
+  timeout: "Recording stopped at 45 seconds to keep live search reliable.",
+  ariaListening: "Listening"
 };
 
 export function VoiceRecorder({
   disabled = false,
   maxDurationMs = 45_000,
+  labels,
   onRecordingComplete
 }: VoiceRecorderProps) {
+  const v = { ...defaultVoice, ...labels };
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -57,7 +73,7 @@ export function VoiceRecorder({
     setError(null);
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Your browser does not support microphone recording.");
+      setError(v.browserNoMic);
       return;
     }
 
@@ -90,11 +106,11 @@ export function VoiceRecorder({
       recorder.start(250);
       setIsRecording(true);
       timeoutRef.current = setTimeout(() => {
-        setError("Recording stopped at 45 seconds to keep live search reliable.");
+        setError(v.timeout);
         stopRecording();
       }, maxDurationMs);
     } catch {
-      setError("Microphone access was blocked or unavailable.");
+      setError(v.micBlocked);
     }
   }
 
@@ -135,12 +151,12 @@ export function VoiceRecorder({
         ].join(" ")}
         aria-pressed={isRecording}
       >
-        <span className="text-center">{isRecording ? "Stop" : "Listen"}</span>
+        <span className="text-center">{isRecording ? v.stop : v.listen}</span>
       </button>
 
       <div className="h-12">
         {isRecording ? (
-          <div className="flex h-12 items-end justify-center gap-1" aria-label="Listening">
+          <div className="flex h-12 items-end justify-center gap-1" aria-label={v.ariaListening}>
             {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
               <span
                 key={bar}
@@ -156,9 +172,7 @@ export function VoiceRecorder({
       </div>
 
       <p className="text-sm text-stone-600">
-        {isRecording
-          ? "Listening with reverence..."
-          : "Tap to record one clear Gurbani line, up to 45 seconds."}
+        {isRecording ? v.hintRecording : v.hintIdle}
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

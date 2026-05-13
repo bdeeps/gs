@@ -1,19 +1,33 @@
 import type { VerseSearchResult } from "@/lib/types";
 
+export type VerseCardLabels = {
+  resultRank: (rank: number) => string;
+  scoreLabel: (percent: number) => string;
+  scoreUnknown: string;
+};
+
 type VerseCardProps = {
   result: VerseSearchResult;
   rank: number;
+  labels?: VerseCardLabels;
 };
 
-function formatScore(score: number) {
+function formatScore(score: number, labels: VerseCardLabels) {
   if (!Number.isFinite(score)) {
-    return "Match";
+    return labels.scoreUnknown;
   }
 
-  return `${Math.max(0, Math.min(100, Math.round(score * 100)))}% match`;
+  const percent = Math.max(0, Math.min(100, Math.round(score * 100)));
+  return labels.scoreLabel(percent);
 }
 
-export function VerseCard({ result, rank }: VerseCardProps) {
+export function VerseCard({ result, rank, labels }: VerseCardProps) {
+  const defaultLabels: VerseCardLabels = {
+    resultRank: (r) => `Result ${r}`,
+    scoreLabel: (p) => `${p}% match`,
+    scoreUnknown: "Match"
+  };
+  const L = labels ?? defaultLabels;
   const metadata = [
     result.ang ? `Ang ${result.ang}` : null,
     result.raag,
@@ -25,10 +39,10 @@ export function VerseCard({ result, rank }: VerseCardProps) {
     <article className="rounded-3xl border border-orange-100 bg-white/90 p-6 shadow-saffron backdrop-blur">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <span className="rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-900">
-          Result {rank}
+          {L.resultRank(rank)}
         </span>
         <span className="rounded-full bg-orange-700 px-3 py-1 text-sm font-semibold text-white">
-          {formatScore(result.score)}
+          {formatScore(result.score, L)}
         </span>
       </div>
 

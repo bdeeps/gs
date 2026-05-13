@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
 import { VerseCard } from "@/components/VerseCard";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
+import {
+  getMarketingStrings,
+  MARKETING_LANG_OPTIONS,
+  type MarketingLang
+} from "@/lib/marketingI18n";
 import type { SearchResponse, VerseSearchResult } from "@/lib/types";
 
 type Status = "idle" | "transcribing" | "searching" | "done" | "error";
 
 export default function Home() {
+  const [lang, setLang] = useState<MarketingLang>("en");
   const [status, setStatus] = useState<Status>("idle");
   const [transcript, setTranscript] = useState("");
   const [results, setResults] = useState<VerseSearchResult[]>([]);
@@ -67,47 +73,62 @@ export default function Home() {
     }
   }
 
-  const isBusy = status === "transcribing" || status === "searching";
-  const steps = [
-    {
-      title: "Create a Gurudwara account",
-      copy: "Each Gurudwara can keep its own live search setup for the stage, projector, and seva team."
-    },
-    {
-      title: "Listen during kirtan or paath",
-      copy: "The browser records one short, respectful clip from the microphone and prepares it for search."
-    },
-    {
-      title: "Show the right verse",
-      copy: "The closest Gurbani lines appear with Gurmukhi, transliteration, meaning, Ang, and Raag."
+  useEffect(() => {
+    const saved = window.localStorage.getItem("gurbani-marketing-lang");
+    if (saved === "en" || saved === "pa" || saved === "hi") {
+      setLang(saved);
     }
-  ];
-  const promises = [
-    "Designed for live diwan use",
-    "Clear layout for sangat, stage, and projector",
-    "Simple enough for any sevadar to operate",
-    "Steady guidance if the connection is slow"
-  ];
+  }, []);
+
+  function selectLang(next: MarketingLang) {
+    setLang(next);
+    window.localStorage.setItem("gurbani-marketing-lang", next);
+  }
+
+  const m = useMemo(() => getMarketingStrings(lang), [lang]);
+
+  const isBusy = status === "transcribing" || status === "searching";
 
   return (
-    <main className="min-h-screen overflow-hidden bg-saffron-page px-5 py-8 text-stone-950 sm:px-8">
+    <main
+      lang={lang === "pa" ? "pa" : lang === "hi" ? "hi" : "en"}
+      className="min-h-screen overflow-hidden bg-saffron-page px-5 py-8 text-stone-950 sm:px-8"
+    >
       <section className="mx-auto flex max-w-7xl flex-col gap-10">
-        <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-5 py-3 shadow-saffron backdrop-blur">
+        <nav className="flex flex-col gap-3 rounded-[1.75rem] border border-white/70 bg-white/55 px-4 py-3 shadow-saffron backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:rounded-full sm:px-5">
           <div>
             <p className="font-gurmukhi text-xl font-semibold text-orange-950">ਗੁਰਬਾਣੀ ਖੋਜ</p>
-            <p className="text-xs uppercase tracking-[0.28em] text-orange-800">
-              Live Gurbani Voice Search
+            <p
+              className={`text-xs font-semibold uppercase tracking-wide text-orange-800 ${lang === "pa" ? "font-gurmukhi tracking-normal normal-case sm:text-sm" : lang === "hi" ? "normal-case sm:text-sm" : "tracking-[0.28em]"}`}
+            >
+              {m.navTagline}
             </p>
           </div>
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {MARKETING_LANG_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => selectLang(opt.id)}
+                className={[
+                  "rounded-full px-3 py-1.5 text-sm font-semibold transition",
+                  lang === opt.id
+                    ? "bg-orange-700 text-white shadow-md"
+                    : "bg-white/80 text-orange-900 ring-1 ring-orange-200 hover:bg-orange-50"
+                ].join(" ")}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <span className="hidden h-6 w-px bg-orange-200 sm:block" aria-hidden />
             <a href="#account" className="text-sm font-semibold text-blue-950">
-              For Gurudwaras
+              {m.navForGurudwaras}
             </a>
             <a
               href="#search"
-              className="rounded-full bg-orange-700 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition hover:bg-orange-800"
+              className="rounded-full bg-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition hover:bg-orange-800 sm:px-5"
             >
-              Try Live Search
+              {m.navTryLiveSearch}
             </a>
           </div>
         </nav>
@@ -116,23 +137,24 @@ export default function Home() {
           <div className="relative rounded-[2.5rem] border border-white/70 bg-white/60 p-8 shadow-saffron backdrop-blur sm:p-12">
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-orange-300/30 blur-3xl" />
             <p className="mb-5 text-sm font-bold uppercase tracking-[0.35em] text-orange-800">
-              Pious Technology For The Guru Ghar
+              {m.heroKicker}
             </p>
-            <h1 className="max-w-4xl text-5xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-7xl">
-              Help the sangat follow Gurbani as it is being recited.
+            <h1
+              className={`max-w-4xl text-5xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-7xl ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "font-[system-ui]" : ""}`}
+            >
+              {m.heroTitle}
             </h1>
-            <p className="mt-7 max-w-2xl text-xl leading-9 text-stone-700">
-              A Gurbani voice search experience for Gurudwaras. Sevadars can create
-              an account, open the live search screen, and find the closest shabad
-              from Punjabi recitation so the verse can be shown with care, clarity,
-              and respect.
+            <p
+              className={`mt-7 max-w-2xl text-xl leading-9 text-stone-700 ${lang === "pa" ? "font-gurmukhi" : ""}`}
+            >
+              {m.heroBody}
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {promises.map((item) => (
+              {m.promises.map((item, index) => (
                 <div
-                  key={item}
-                  className="rounded-2xl border border-orange-100 bg-amber-50/70 px-4 py-3 text-sm font-semibold text-orange-950"
+                  key={`${lang}-promise-${index}`}
+                  className={`rounded-2xl border border-orange-100 bg-amber-50/70 px-4 py-3 text-sm font-semibold text-orange-950 ${lang === "pa" ? "font-gurmukhi leading-relaxed" : lang === "hi" ? "leading-relaxed" : ""}`}
                 >
                   {item}
                 </div>
@@ -142,9 +164,10 @@ export default function Home() {
             <p className="mt-8 font-gurmukhi text-3xl leading-relaxed text-blue-950">
               ਸਤਿਗੁਰ ਕੀ ਬਾਣੀ ਸਤਿ ਸਰੂਪੁ ਹੈ ਗੁਰਬਾਣੀ ਬਣੀਐ
             </p>
-            <p className="mt-2 text-sm text-stone-500">
-              Built as a support for seva and sangat. It is not a replacement for
-              paath, vichaar, maryada, or learned understanding.
+            <p
+              className={`mt-2 text-sm text-stone-500 ${lang === "pa" ? "font-gurmukhi leading-relaxed" : lang === "hi" ? "leading-relaxed" : ""}`}
+            >
+              {m.disclaimer}
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -152,13 +175,13 @@ export default function Home() {
                 href="#account"
                 className="rounded-full bg-blue-950 px-6 py-3 text-center text-sm font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-blue-900"
               >
-                Create Gurudwara Account
+                {m.ctaCreateAccount}
               </a>
               <a
                 href="#search"
                 className="rounded-full border border-orange-300 bg-white/70 px-6 py-3 text-center text-sm font-bold text-orange-900 transition hover:bg-orange-50"
               >
-                Try Voice Search
+                {m.ctaTryVoice}
               </a>
             </div>
           </div>
@@ -169,45 +192,63 @@ export default function Home() {
           >
             <div className="mb-7 text-center">
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-orange-700">
-                Live Demonstration
+                {m.demoLabel}
               </p>
-              <h2 className="mt-3 text-3xl font-semibold text-stone-950">
-                Search by Punjabi recitation
+              <h2
+                className={`mt-3 text-3xl font-semibold text-stone-950 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : ""}`}
+              >
+                {m.demoTitle}
               </h2>
-              <p className="mt-3 leading-7 text-stone-600">
-                For best results, record one clear Gurbani line at a time.
+              <p
+                className={`mt-3 leading-7 text-stone-600 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : ""}`}
+              >
+                {m.demoHint}
               </p>
             </div>
 
-            <VoiceRecorder disabled={isBusy} onRecordingComplete={handleRecording} />
+            <VoiceRecorder
+              disabled={isBusy}
+              labels={m.voice}
+              onRecordingComplete={handleRecording}
+            />
 
             <div className="mt-8 rounded-2xl bg-orange-950 px-5 py-4 text-center text-sm text-orange-50">
               {status === "transcribing" ? (
-                <p className="font-medium">Transcribing Punjabi audio with care...</p>
+                <p className={`font-medium ${lang === "pa" ? "font-gurmukhi" : ""}`}>{m.statusTranscribing}</p>
               ) : null}
               {status === "searching" ? (
-                <p className="font-medium">Searching the stored Gurbani verses...</p>
+                <p className={`font-medium ${lang === "pa" ? "font-gurmukhi" : ""}`}>{m.statusSearching}</p>
               ) : null}
               {status === "idle" ? (
-                <p>Tap Listen, recite clearly, then tap Stop to search.</p>
+                <p className={lang === "pa" ? "font-gurmukhi" : ""}>{m.statusIdle}</p>
               ) : null}
-              {status === "done" ? <p>Search complete. Closest verses are shown below.</p> : null}
+              {status === "done" ? (
+                <p className={lang === "pa" ? "font-gurmukhi" : ""}>{m.statusDone}</p>
+              ) : null}
               {error ? <p className="font-medium text-amber-200">{error}</p> : null}
             </div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          {steps.map((step, index) => (
+          {m.steps.map((step, index) => (
             <div
-              key={step.title}
+              key={`${lang}-step-${index}`}
               className="rounded-3xl border border-white/70 bg-white/60 p-6 shadow-saffron backdrop-blur"
             >
               <p className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-orange-700 font-semibold text-white">
                 {index + 1}
               </p>
-              <h3 className="text-xl font-semibold text-stone-950">{step.title}</h3>
-              <p className="mt-3 leading-7 text-stone-600">{step.copy}</p>
+              <h3
+                className={`text-xl font-semibold text-stone-950 ${lang === "pa" ? "font-gurmukhi" : ""}`}
+              >
+                {step.title}
+              </h3>
+              <p
+                className={`mt-3 leading-7 text-stone-600 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "leading-relaxed" : ""}`}
+              >
+                {step.copy}
+              </p>
             </div>
           ))}
         </div>
@@ -218,32 +259,25 @@ export default function Home() {
         >
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.32em] text-amber-300">
-              For Gurudwaras
+              {m.accountKicker}
             </p>
-            <h2 className="mt-4 text-4xl font-semibold leading-tight">
-              A calm control room for every Guru Ghar.
+            <h2 className={`mt-4 text-4xl font-semibold leading-tight ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+              {m.accountTitle}
             </h2>
-            <p className="mt-5 leading-8 text-blue-100">
-              Create a Gurudwara account for your seva team, open the live
-              browser screen, and use voice search during kirtan, katha, paath,
-              or youth programs. The interface is intentionally simple so a
-              sevadar can operate it without technical training.
+            <p className={`mt-5 leading-8 text-blue-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+              {m.accountBody}
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              ["Live Diwan Mode", "Large, readable results for projector or stage support."],
-              ["Sevadar Friendly", "One clear action: listen, search, and show the closest verse."],
-              ["Sacred Presentation", "Gurmukhi first, with transliteration and English meaning below."],
-              [
-                "Steady for the sangat",
-                "Built to stay calm and responsive when many hearts are listening together."
-              ]
-            ].map(([title, copy]) => (
-              <div key={title} className="rounded-3xl border border-white/10 bg-white/10 p-5">
-                <h3 className="font-semibold text-amber-100">{title}</h3>
-                <p className="mt-3 leading-7 text-blue-100">{copy}</p>
+            {m.features.map((feature, index) => (
+              <div key={`${lang}-feature-${index}`} className="rounded-3xl border border-white/10 bg-white/10 p-5">
+                <h3 className={`font-semibold text-amber-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+                  {feature.title}
+                </h3>
+                <p className={`mt-3 leading-7 text-blue-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+                  {feature.copy}
+                </p>
               </div>
             ))}
           </div>
@@ -252,7 +286,7 @@ export default function Home() {
         {transcript ? (
           <div className="w-full rounded-3xl border border-orange-100 bg-white/75 p-6 shadow-saffron">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">
-              Transcript
+              {m.transcriptLabel}
             </p>
             <p className="mt-3 text-lg leading-8 text-stone-800">{transcript}</p>
           </div>
@@ -261,12 +295,23 @@ export default function Home() {
         {results.length ? (
           <div className="grid w-full gap-5">
             {results.map((result, index) => (
-              <VerseCard key={result.id} result={result} rank={index + 1} />
+              <VerseCard
+                key={result.id}
+                result={result}
+                rank={index + 1}
+                labels={{
+                  resultRank: m.verseResult,
+                  scoreLabel: m.verseScore,
+                  scoreUnknown: m.verseScoreUnknown
+                }}
+              />
             ))}
           </div>
         ) : status === "done" ? (
-          <div className="w-full rounded-3xl border border-orange-100 bg-white/80 p-8 text-center text-stone-600">
-            No matching verses were found.
+          <div
+            className={`w-full rounded-3xl border border-orange-100 bg-white/80 p-8 text-center text-stone-600 ${lang === "pa" ? "font-gurmukhi" : ""}`}
+          >
+            {m.noResults}
           </div>
         ) : null}
       </section>
