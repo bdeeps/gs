@@ -74,6 +74,7 @@ export function StreamingRecitationScreen({
   const processSegmentRef = useRef<(blob: Blob) => void>(() => {});
 
   const [recording, setRecording] = useState(false);
+  const [audioSource, setAudioSource] = useState<"mic" | "tab">("mic");
   const [elapsedMs, setElapsedMs] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
@@ -321,9 +322,27 @@ export function StreamingRecitationScreen({
     if (rec?.state === "recording") rec.stop();
   }, []);
 
+  /* ── acquire audio stream (mic or tab) ────────────────────── */
+
+  async function acquireStream(source: "mic" | "tab"): Promise<MediaStream> {
+    if (source === "tab") {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        audio: true,
+        video: true,
+      });
+      displayStream.getVideoTracks().forEach((t) => t.stop());
+      const audioTracks = displayStream.getAudioTracks();
+      if (!audioTracks.length) {
+        throw new Error("No audio in the shared tab. Make sure to check \"Share tab audio\" in the picker.");
+      }
+      return new MediaStream(audioTracks);
+    }
+    return navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
   /* ── start recording ─────────────────────────────────────── */
 
-  const startRecording = async () => {
+  const startRecording = async (source: "mic" | "tab") => {
     setLocalError(null);
     setStreamError(null);
     setLiveTranscript("");
@@ -331,13 +350,13 @@ export function StreamingRecitationScreen({
     stickToBottomRef.current = true;
     fullCleanup();
 
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (source === "mic" && !navigator.mediaDevices?.getUserMedia) {
       setLocalError(copy.browserNoMic);
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await acquireStream(source);
       streamRef.current = stream;
       abortRef.current = new AbortController();
 
@@ -366,7 +385,7 @@ export function StreamingRecitationScreen({
             stopMic();
             releaseWakeLock();
             setRecording(false);
-            setLocalError(copy.micBlocked);
+            setLocalError(source === "tab" ? "Tab sharing ended." : copy.micBlocked);
             setPhase("idle");
           },
           { once: true }
@@ -406,7 +425,11 @@ export function StreamingRecitationScreen({
       setRecording(true);
     } catch {
       fullCleanup();
-      setLocalError(copy.micBlocked);
+      setLocalError(
+        source === "tab"
+          ? "Could not capture tab audio. Use Chrome, and check \"Share tab audio\" in the picker."
+          : copy.micBlocked
+      );
     }
   };
 
@@ -545,16 +568,42 @@ export function StreamingRecitationScreen({
           <p className={`mt-2 shrink-0 text-center text-xs text-red-600 sm:text-sm ${langClass}`}>{streamError}</p>
         ) : null}
 
-        <div className="mt-auto flex shrink-0 justify-center pt-5">
+        <div className="mt-auto flex shrink-0 flex-col items-center gap-3 pt-5">
           {!recording ? (
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => void startRecording()}
-              className={`rounded-full bg-gradient-to-br from-orange-600 to-orange-800 px-10 py-4 text-base font-bold text-white shadow-lg shadow-orange-900/25 transition hover:from-orange-700 hover:to-orange-900 disabled:cursor-not-allowed disabled:opacity-50 ${langClass}`}
-            >
-              {copy.startButton}
-            </button>
+            <>
+              <div className="flex items-center gap-2 rounded-full bg-white/80 p-1 shadow-sm border border-orange-200/60">
+                <button
+                  type="button"
+                  onClick={() => setAudioSource("mic")}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                    audioSource === "mic"
+                      ? "bg-orange-600 text-white shadow-sm"
+                      : "text-stone-600 hover:text-orange-800"
+                  }`}
+                >
+                  🎙 Microphone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudioSource("tab")}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                    audioSource === "tab"
+                      ? "bg-orange-600 text-white shadow-sm"
+                      : "text-stone-600 hover:text-orange-800"
+                  }`}
+                >
+                  🔊 Tab Audio
+                </button>
+              </div>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => void startRecording(audioSource)}
+                className={`rounded-full bg-gradient-to-br from-orange-600 to-orange-800 px-10 py-4 text-base font-bold text-white shadow-lg shadow-orange-900/25 transition hover:from-orange-700 hover:to-orange-900 disabled:cursor-not-allowed disabled:opacity-50 ${langClass}`}
+              >
+                {copy.startButton}
+              </button>
+            </>
           ) : (
             <button
               type="button"
