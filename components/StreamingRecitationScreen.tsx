@@ -85,7 +85,7 @@ export function StreamingRecitationScreen({
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  const lastVerseRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
 
   /* ── cleanup helpers ─────────────────────────────────────── */
@@ -163,13 +163,13 @@ export function StreamingRecitationScreen({
   const handleTimelineScroll = useCallback(() => {
     const root = scrollViewportRef.current;
     if (!root) return;
-    stickToBottomRef.current = root.scrollHeight - root.scrollTop - root.clientHeight < 96;
+    stickToBottomRef.current = root.scrollHeight - root.scrollTop - root.clientHeight < 200;
   }, []);
 
   useEffect(() => {
     if (!open || !lastTimelineKey || !stickToBottomRef.current) return;
     requestAnimationFrame(() => {
-      scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      lastVerseRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [lastTimelineKey, open]);
 
@@ -448,10 +448,11 @@ export function StreamingRecitationScreen({
           </div>
         ) : (
           <div className="mx-auto w-full max-w-3xl">
-            {timeline.map((entry) => (
-              <StreamingVerseBlock key={entry.key} verse={entry.verse} />
+            {timeline.map((entry, i) => (
+              <div key={entry.key} ref={i === timeline.length - 1 ? lastVerseRef : undefined}>
+                <StreamingVerseBlock verse={entry.verse} />
+              </div>
             ))}
-            <div ref={scrollAnchorRef} aria-hidden className="h-px w-full shrink-0" />
           </div>
         )}
       </div>
