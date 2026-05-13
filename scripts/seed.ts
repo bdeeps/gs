@@ -4,6 +4,9 @@ import Database from "better-sqlite3";
 import { getPool, toVectorLiteral } from "../lib/db";
 import { embedPassage } from "../lib/embed";
 
+const DEFAULT_SHABADOS_DOWNLOAD_URL =
+  "https://github.com/shabados/database/releases/download/4.8.7/database.sqlite";
+
 type RawLine = Record<string, unknown>;
 
 type SeedVerse = {
@@ -92,7 +95,7 @@ function mapLine(row: RawLine, index: number): SeedVerse | null {
 }
 
 async function downloadIfNeeded() {
-  const downloadUrl = process.env.SHABADOS_DOWNLOAD_URL;
+  const downloadUrl = process.env.SHABADOS_DOWNLOAD_URL || DEFAULT_SHABADOS_DOWNLOAD_URL;
   if (!downloadUrl) {
     return null;
   }

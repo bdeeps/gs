@@ -36,13 +36,31 @@ A Next.js web app that records Punjabi Gurbani audio, transcribes it with OpenAI
    npm run dev
    ```
 
+For production, `npm run start` runs startup checks first. It validates required
+environment variables, applies `scripts/schema.sql`, creates the `vector`
+extension and indexes, acquires a Postgres advisory lock, seeds the database if
+`verses` is empty, then starts Next.js.
+
+## Live Use Reliability
+
+The app includes safeguards for Gurudwara live use:
+
+- Microphone recordings stop automatically at 45 seconds.
+- Audio uploads are capped at 12 MB.
+- Search text is limited to one short Gurbani line.
+- Whisper and HuggingFace calls use timeouts.
+- Embedding requests retry on rate limits and temporary provider failures.
+- Public API responses avoid leaking provider/API-key details.
+- PostgreSQL pool size and query timeouts are bounded for Railway.
+- Startup uses a database lock so multiple instances do not seed at the same time.
+
 ## Seed Inputs
 
 The seed script supports:
 
 - `SHABADOS_SQLITE_PATH`: path to a ShabadOS SQLite database.
 - `SHABADOS_JSON_PATH`: path to a JSON array of verse/line objects.
-- `SHABADOS_DOWNLOAD_URL`: optional URL to download a SQLite database into `data/shabados.sqlite`.
+- `SHABADOS_DOWNLOAD_URL`: optional URL to download a SQLite database into `data/shabados.sqlite`. If omitted, startup uses the official stable ShabadOS SQLite release: `https://github.com/shabados/database/releases/download/4.8.7/database.sqlite`.
 - `SHABADOS_LINES_QUERY`: optional SQL query override for SQLite ingestion.
 - `SEED_LIMIT`: optional limit for testing a small subset first.
 
@@ -66,12 +84,18 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 OPENAI_API_KEY=sk-your-openai-key
 HF_API_KEY=hf-your-huggingface-key
 EMBEDDING_MODEL=intfloat/multilingual-e5-large
+PG_POOL_MAX=5
+```
+
+You can omit `SHABADOS_DOWNLOAD_URL` to use the default official stable ShabadOS SQLite release:
+
+```bash
+https://github.com/shabados/database/releases/download/4.8.7/database.sqlite
 ```
 
 Optional seed variables:
 
 ```bash
-SHABADOS_DOWNLOAD_URL=https://your-public-shabados-sqlite-url
 SHABADOS_SQLITE_PATH=./data/shabados.sqlite
 SHABADOS_JSON_PATH=./data/sggs-lines.json
 SEED_LIMIT=100
@@ -86,30 +110,30 @@ npm install && npm run build
 npm run start
 ```
 
+On startup, the app automatically:
+
+- Validates `DATABASE_URL`, `OPENAI_API_KEY`, and `HF_API_KEY`.
+- Runs the PostgreSQL schema from `scripts/schema.sql`.
+- Creates `CREATE EXTENSION IF NOT EXISTS vector`.
+- Creates the `verses` table and HNSW vector index.
+- Acquires a Postgres advisory lock to prevent duplicate startup seeding.
+- Checks `SELECT COUNT(*) FROM verses`.
+- Seeds Gurbani data only when the table is empty, using your configured seed source or the default official ShabadOS SQLite URL.
+- Starts Next.js only after the database is ready.
+
 The health check is:
 
 ```bash
 /api/health
 ```
 
-### Database Setup on Railway
+### First Deploy Tip
 
-After the Postgres service is connected, run the schema once:
-
-```bash
-npm run db:schema
-```
-
-Then seed the Gurbani data once:
+For a first test, set `SEED_LIMIT` so Railway only embeds a small set:
 
 ```bash
-SHABADOS_DOWNLOAD_URL=https://your-public-shabados-sqlite-url npm run db:seed
+SEED_LIMIT=100
 ```
 
-For a first test, seed a small set:
-
-```bash
-SEED_LIMIT=100 SHABADOS_DOWNLOAD_URL=https://your-public-shabados-sqlite-url npm run db:seed
-```
-
-When the small test works, run the full seed without `SEED_LIMIT`.
+When the small test works, remove `SEED_LIMIT`, clear/recreate the `verses`
+table, and redeploy to seed the full Gurbani dataset.

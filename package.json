@@ -8,9 +8,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/startup.mjs",
+    "start:web": "next start",
     "lint": "eslint .",
-    "db:schema": "psql \"$DATABASE_URL\" -f scripts/schema.sql",
+    "db:schema": "node scripts/apply-schema.mjs",
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
@@ -18,7 +19,8 @@
     "next": "latest",
     "pg": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "tsx": "latest"
   },
   "devDependencies": {
     "@eslint/eslintrc": "latest",
@@ -33,7 +35,6 @@
     "eslint-config-next": "latest",
     "postcss": "latest",
     "tailwindcss": "latest",
-    "tsx": "latest",
     "typescript": "latest"
   }
 }

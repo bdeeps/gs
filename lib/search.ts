@@ -1,6 +1,7 @@
-import { getPool, toVectorLiteral } from "@/lib/db";
-import { embedQuery } from "@/lib/embed";
-import type { VerseSearchResult } from "@/lib/types";
+import { DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT } from "./config";
+import { getPool, toVectorLiteral } from "./db";
+import { embedQuery } from "./embed";
+import type { VerseSearchResult } from "./types";
 
 type VerseRow = {
   id: string;
@@ -16,12 +17,16 @@ type VerseRow = {
   score: number;
 };
 
-export async function searchVerses(query: string, limit = 5): Promise<VerseSearchResult[]> {
+export async function searchVerses(
+  query: string,
+  limit = DEFAULT_SEARCH_LIMIT
+): Promise<VerseSearchResult[]> {
   const cleanQuery = query.trim();
   if (!cleanQuery) {
     return [];
   }
 
+  const safeLimit = Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.floor(limit)));
   const embedding = await embedQuery(cleanQuery);
   const { rows } = await getPool().query<VerseRow>(
     `
@@ -41,7 +46,7 @@ export async function searchVerses(query: string, limit = 5): Promise<VerseSearc
       ORDER BY embedding <=> $1::vector
       LIMIT $2
     `,
-    [toVectorLiteral(embedding), limit]
+    [toVectorLiteral(embedding), safeLimit]
   );
 
   return rows.map((row) => ({

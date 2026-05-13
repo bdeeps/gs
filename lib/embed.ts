@@ -1,3 +1,9 @@
+import {
+  EMBEDDING_TIMEOUT_MS,
+  EXPECTED_EMBEDDING_DIMENSIONS
+} from "./config";
+import { fetchWithTimeout, isAbortError } from "./http";
+
 const DEFAULT_MODEL = "intfloat/multilingual-e5-large";
 
 type HuggingFaceEmbedding = number[] | number[][] | number[][][];
@@ -56,29 +62,68 @@ async function embedText(input: string, prefix: "query" | "passage") {
     throw new Error("HF_API_KEY is required for embeddings.");
   }
 
-  const response = await fetch(
-    `https://api-inference.huggingface.co/pipeline/feature-extraction/${getEmbeddingModel()}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.HF_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        inputs: `${prefix}: ${input}`,
-        parameters: { pooling: "mean", normalize: true },
-        options: { wait_for_model: true }
-      })
-    }
-  );
+  const endpoint = `https://api-inference.huggingface.co/pipeline/feature-extraction/${getEmbeddingModel()}`;
+  let lastError: unknown;
 
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`Embedding request failed: ${message}`);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(
+        endpoint,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.HF_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            inputs: `${prefix}: ${input}`,
+            parameters: { pooling: "mean", normalize: true },
+            options: { wait_for_model: true }
+          })
+        },
+        EMBEDDING_TIMEOUT_MS
+      );
+
+      if (response.status === 429 || response.status >= 500) {
+        lastError = new Error(`Embedding provider returned ${response.status}.`);
+        await wait(attempt * 750);
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Embedding provider rejected the request with ${response.status}.`);
+      }
+
+      const payload = (await response.json()) as HuggingFaceEmbedding;
+      const embedding = normalizeEmbedding(payload);
+      if (embedding.length !== EXPECTED_EMBEDDING_DIMENSIONS) {
+        throw new Error(
+          `Embedding dimension mismatch: expected ${EXPECTED_EMBEDDING_DIMENSIONS}, received ${embedding.length}.`
+        );
+      }
+
+      return embedding;
+    } catch (error) {
+      lastError = error;
+      if (!isAbortError(error) && attempt === 3) {
+        break;
+      }
+
+      await wait(attempt * 750);
+    }
   }
 
-  const payload = (await response.json()) as HuggingFaceEmbedding;
-  return normalizeEmbedding(payload);
+  if (isAbortError(lastError)) {
+    throw new Error("Embedding service timed out. Please try again.");
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Embedding service is unavailable.");
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function embedQuery(input: string) {

@@ -1,18 +1,38 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type VoiceRecorderProps = {
   disabled?: boolean;
+  maxDurationMs?: number;
   onRecordingComplete: (audio: Blob) => Promise<void> | void;
 };
 
-export function VoiceRecorder({ disabled = false, onRecordingComplete }: VoiceRecorderProps) {
+export function VoiceRecorder({
+  disabled = false,
+  maxDurationMs = 45_000,
+  onRecordingComplete
+}: VoiceRecorderProps) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      clearRecordingTimeout();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  function clearRecordingTimeout() {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }
 
   async function startRecording() {
     setError(null);
@@ -38,19 +58,26 @@ export function VoiceRecorder({ disabled = false, onRecordingComplete }: VoiceRe
 
       recorder.onstop = async () => {
         const audio = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        clearRecordingTimeout();
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        setIsRecording(false);
         await onRecordingComplete(audio);
       };
 
       recorder.start();
       setIsRecording(true);
+      timeoutRef.current = setTimeout(() => {
+        setError("Recording stopped at 45 seconds to keep live search reliable.");
+        stopRecording();
+      }, maxDurationMs);
     } catch {
       setError("Microphone access was blocked or unavailable.");
     }
   }
 
   function stopRecording() {
+    clearRecordingTimeout();
     if (recorderRef.current?.state === "recording") {
       recorderRef.current.stop();
     }
@@ -109,7 +136,7 @@ export function VoiceRecorder({ disabled = false, onRecordingComplete }: VoiceRe
       <p className="text-sm text-stone-600">
         {isRecording
           ? "Listening with reverence..."
-          : "Tap to record a clear Punjabi Gurbani line."}
+          : "Tap to record one clear Gurbani line, up to 45 seconds."}
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
