@@ -5,6 +5,7 @@ type StreamingVerseBlockProps = {
   verse: VerseSearchResult;
   heardTranscript: string;
   matchLabel: string;
+  gurmukhiHeading: string;
   translationHeading: string;
   langClass?: string;
 };
@@ -13,6 +14,7 @@ export function StreamingVerseBlock({
   verse,
   heardTranscript,
   matchLabel,
+  gurmukhiHeading,
   translationHeading,
   langClass = ""
 }: StreamingVerseBlockProps) {
@@ -25,9 +27,9 @@ export function StreamingVerseBlock({
   ].filter(Boolean);
 
   return (
-    <article className="rounded-2xl border border-orange-200/90 bg-white/95 px-5 py-7 shadow-sm sm:px-7 sm:py-8">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-900">
+    <article className="rounded-2xl border border-orange-200/70 bg-white/90 px-5 py-6 shadow-sm backdrop-blur-[2px] sm:px-7 sm:py-7">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="rounded-full bg-orange-100/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-900">
           {matchLabel}
         </span>
         {Number.isFinite(verse.score) ? (
@@ -39,24 +41,29 @@ export function StreamingVerseBlock({
 
       {heardTranscript ? (
         <p
-          className={`mb-6 border-b border-dashed border-orange-200/80 pb-5 text-sm leading-relaxed text-stone-500 ${langClass}`}
+          className={`mb-5 border-b border-orange-100 pb-4 text-sm leading-relaxed text-stone-500 ${langClass}`}
         >
           {heardTranscript}
         </p>
       ) : null}
 
-      <p className={`font-gurmukhi text-2xl leading-[1.85] text-stone-950 sm:text-3xl sm:leading-[1.9] ${langClass}`}>
-        {gurmukhiDisplay}
-      </p>
+      <div className="space-y-3">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-800">{gurmukhiHeading}</p>
+        <p lang="pa" className={`font-gurmukhi text-2xl leading-[1.85] text-stone-950 sm:text-3xl sm:leading-[1.9] ${langClass}`}>
+          {gurmukhiDisplay}
+        </p>
+      </div>
 
       {verse.transliteration ? (
-        <p className="mt-5 text-base leading-relaxed text-stone-600 sm:text-lg sm:leading-relaxed">{verse.transliteration}</p>
+        <p className="mt-4 text-base leading-relaxed text-stone-600 sm:text-lg sm:leading-relaxed">{verse.transliteration}</p>
       ) : null}
 
       {verse.translation ? (
-        <div className="mt-8 border-t border-orange-200 pt-8">
+        <div className="mt-6 border-t border-orange-100 pt-6">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-800">{translationHeading}</p>
-          <p className="mt-4 text-base leading-8 text-stone-800 sm:text-lg sm:leading-9">{verse.translation}</p>
+          <p lang="en" className="mt-3 text-base leading-8 text-stone-800 sm:text-lg sm:leading-9">
+            {verse.translation}
+          </p>
         </div>
       ) : null}
 

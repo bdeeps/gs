@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
-import { MAX_QUERY_CHARS, trimForSearch } from "@/lib/config";
 import { pickRecorderMimeType } from "@/lib/recordingMime";
-import type { SearchResponse, VerseSearchResult } from "@/lib/types";
+import type { VerseSearchResult } from "@/lib/types";
 import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 
-const MAX_MS = 45_000;
-const CHUNK_MS = 3_500;
-const DEBOUNCE_MS = 750;
-const MIN_TRANSCRIBE_BYTES = 10_240;
+/**
+ * First segment is short so the sangat sees a verse within ~7-8 seconds
+ * of pressing Start.  Subsequent segments are longer for better accuracy.
+ */
+const FIRST_SEGMENT_MS = 5_000;
+const SEGMENT_MS = 10_000;
+const MIN_TRANSCRIBE_BYTES = 4_096;
 const MIN_SCORE_TO_SHOW = 0.26;
 
 export type StreamingRecitationCopy = {
@@ -25,10 +27,10 @@ export type StreamingRecitationCopy = {
   workingTranscribe: string;
   workingSearch: string;
   matchLabel: string;
+  gurmukhiHeading: string;
   translationHeading: string;
   micBlocked: string;
   browserNoMic: string;
-  limitReached: string;
   sessionHint: string;
 };
 
@@ -57,74 +59,88 @@ export function StreamingRecitationScreen({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const mimeRef = useRef<string>("audio/webm");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startTsRef = useRef(0);
-  const limitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const recordingActiveRef = useRef(false);
 
-  const pipelineBusy = useRef(false);
-  const pipelineDirty = useRef(false);
+  const startTsRef = useRef(0);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const firstCycleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cycleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const activeRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
+
+  const beginSegmentRef = useRef<() => void>(() => {});
+  const processSegmentRef = useRef<(blob: Blob) => void>(() => {});
 
   const [recording, setRecording] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [limitBanner, setLimitBanner] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [phase, setPhase] = useState<"idle" | "transcribing" | "searching">("idle");
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
 
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
   const scrollAnchorRef = useRef<HTMLLIElement>(null);
+  const stickToBottomRef = useRef(true);
 
-  const clearDebounce = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-  }, []);
+  /* ── cleanup helpers ─────────────────────────────────────── */
 
   const clearTimers = useCallback(() => {
-    clearDebounce();
-    if (limitTimerRef.current) {
-      clearTimeout(limitTimerRef.current);
-      limitTimerRef.current = null;
-    }
     if (elapsedTimerRef.current) {
       clearInterval(elapsedTimerRef.current);
       elapsedTimerRef.current = null;
     }
-  }, [clearDebounce]);
+    if (firstCycleTimerRef.current) {
+      clearTimeout(firstCycleTimerRef.current);
+      firstCycleTimerRef.current = null;
+    }
+    if (cycleTimerRef.current) {
+      clearInterval(cycleTimerRef.current);
+      cycleTimerRef.current = null;
+    }
+  }, []);
 
   const stopMic = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
 
+  const releaseWakeLock = useCallback(() => {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
+  }, []);
+
   const fullCleanup = useCallback(() => {
     clearTimers();
-    recordingActiveRef.current = false;
+    activeRef.current = false;
+    abortRef.current?.abort();
+    abortRef.current = null;
+
     const rec = recorderRef.current;
-    const wasRecording = rec?.state === "recording";
-    if (wasRecording) {
-      try {
-        rec.stop();
-      } catch {
-        // ignore
+    if (rec) {
+      rec.ondataavailable = null;
+      rec.onstop = null;
+      rec.onerror = null;
+      if (rec.state === "recording") {
+        try {
+          rec.stop();
+        } catch {
+          /* ignore */
+        }
       }
     }
     recorderRef.current = null;
-    if (!wasRecording) {
-      chunksRef.current = [];
-      stopMic();
-    }
-    pipelineDirty.current = false;
-    pipelineBusy.current = false;
+    chunksRef.current = [];
+    stopMic();
+    releaseWakeLock();
+
     setRecording(false);
     setElapsedMs(0);
-    setLimitBanner(false);
     setPhase("idle");
-  }, [clearTimers, stopMic]);
+  }, [clearTimers, stopMic, releaseWakeLock]);
+
+  /* ── open / close / unmount ──────────────────────────────── */
 
   useEffect(() => {
     if (open) {
@@ -139,25 +155,55 @@ export function StreamingRecitationScreen({
     }
     return () => {
       document.body.style.overflow = "";
+      fullCleanup();
     };
   }, [open, fullCleanup]);
 
+  /* ── re-acquire wake lock on visibility change ───────────── */
+
   useEffect(() => {
-    if (!timeline.length) {
-      return;
-    }
-    scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [timeline.length]);
+    const handler = async () => {
+      if (document.visibilityState === "visible" && activeRef.current && !wakeLockRef.current) {
+        try {
+          if ("wakeLock" in navigator) {
+            wakeLockRef.current = await (
+              navigator as never as {
+                wakeLock: { request: (t: string) => Promise<{ release: () => Promise<void> }> };
+              }
+            ).wakeLock.request("screen");
+          }
+        } catch {
+          /* non-fatal */
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
+  /* ── scroll management ───────────────────────────────────── */
+
+  const lastTimelineKey = timeline[timeline.length - 1]?.key;
+
+  const handleTimelineScroll = useCallback(() => {
+    const root = scrollViewportRef.current;
+    if (!root) return;
+    stickToBottomRef.current = root.scrollHeight - root.scrollTop - root.clientHeight < 96;
+  }, []);
+
+  useEffect(() => {
+    if (!open || !lastTimelineKey || !stickToBottomRef.current) return;
+    requestAnimationFrame(() => {
+      scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
+  }, [lastTimelineKey, open]);
+
+  /* ── verse dedup + append ────────────────────────────────── */
 
   const appendIfNewVerse = useCallback((verse: VerseSearchResult | undefined, heard: string) => {
-    if (!verse || verse.score < MIN_SCORE_TO_SHOW) {
-      return;
-    }
+    if (!verse || verse.score < MIN_SCORE_TO_SHOW) return;
     setTimeline((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.verse.id === verse.id) {
-        return prev;
-      }
+      if (prev[prev.length - 1]?.verse.id === verse.id) return prev;
       return [
         ...prev,
         {
@@ -169,109 +215,119 @@ export function StreamingRecitationScreen({
     });
   }, []);
 
-  const transcribeOnce = useCallback(async (blob: Blob) => {
+  /* ── single-call live API ────────────────────────────────── */
+
+  type LiveResponse = { text?: string; results?: VerseSearchResult[]; error?: string };
+
+  const liveSearch = useCallback(async (blob: Blob, signal?: AbortSignal): Promise<LiveResponse> => {
     const formData = new FormData();
     formData.append("audio", blob, filenameForAudioBlob(blob));
-    const res = await fetch("/api/transcribe", { method: "POST", body: formData });
-    const payload = (await res.json()) as { text?: string; error?: string };
-    if (!res.ok) {
-      throw new Error(payload.error || "Transcription failed.");
-    }
-    return (payload.text || "").trim();
+    const res = await fetch("/api/live", { method: "POST", body: formData, signal });
+    const payload = (await res.json()) as LiveResponse;
+    if (!res.ok) throw new Error(payload.error || "Live search failed.");
+    return payload;
   }, []);
 
-  const searchOnce = useCallback(async (query: string) => {
-    const q = trimForSearch(query).slice(0, MAX_QUERY_CHARS);
-    if (!q) {
-      return [] as VerseSearchResult[];
-    }
-    const res = await fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: q })
-    });
-    const payload = (await res.json()) as SearchResponse & { error?: string };
-    if (!res.ok) {
-      throw new Error(payload.error || "Search failed.");
-    }
-    return payload.results;
-  }, []);
+  /* ── segment processing (one fetch per segment) ──────────── */
 
-  const runPipelineCycle = useCallback(async () => {
-    const blob = new Blob(chunksRef.current, { type: mimeRef.current });
-    if (blob.size < MIN_TRANSCRIBE_BYTES) {
-      return;
-    }
+  const processSegment = useCallback(
+    async (blob: Blob) => {
+      if (blob.size < MIN_TRANSCRIBE_BYTES) return;
+      const signal = abortRef.current?.signal;
+      if (signal?.aborted) return;
 
-    setPhase("transcribing");
-    setStreamError(null);
-    let text = "";
-    try {
-      text = await transcribeOnce(blob);
-    } catch (e) {
-      setStreamError(e instanceof Error ? e.message : copy.workingTranscribe);
-      setPhase("idle");
-      return;
-    }
+      setPhase("transcribing");
+      setStreamError(null);
 
-    if (!text) {
-      setPhase("idle");
-      return;
-    }
-
-    setLiveTranscript(text);
-    setPhase("searching");
-
-    let results: VerseSearchResult[] = [];
-    try {
-      results = await searchOnce(text);
-    } catch (e) {
-      setStreamError(e instanceof Error ? e.message : copy.workingSearch);
-      setPhase("idle");
-      return;
-    }
-
-    appendIfNewVerse(results[0], text);
-    setPhase("idle");
-  }, [appendIfNewVerse, copy.workingSearch, copy.workingTranscribe, searchOnce, transcribeOnce]);
-
-  const kickPipeline = useCallback(() => {
-    if (pipelineBusy.current) {
-      pipelineDirty.current = true;
-      return;
-    }
-
-    pipelineBusy.current = true;
-    void (async () => {
       try {
-        do {
-          pipelineDirty.current = false;
-          await runPipelineCycle();
-        } while (pipelineDirty.current);
-      } finally {
-        pipelineBusy.current = false;
-        if (pipelineDirty.current) {
-          pipelineDirty.current = false;
-          void kickPipeline();
-        }
-      }
-    })();
-  }, [runPipelineCycle]);
+        const { text, results } = await liveSearch(blob, signal);
+        if (signal?.aborted) return;
 
-  const schedulePipeline = useCallback(() => {
-    clearDebounce();
-    debounceRef.current = setTimeout(() => {
-      debounceRef.current = null;
-      kickPipeline();
-    }, DEBOUNCE_MS);
-  }, [clearDebounce, kickPipeline]);
+        if (text) {
+          setLiveTranscript(text);
+          setPhase("searching");
+          appendIfNewVerse(results?.[0], text);
+        }
+      } catch (e) {
+        if (signal?.aborted) return;
+        setStreamError(e instanceof Error ? e.message : copy.workingTranscribe);
+      }
+      setPhase("idle");
+    },
+    [liveSearch, appendIfNewVerse, copy.workingTranscribe]
+  );
+
+  /* ── recorder segment lifecycle (stop-restart) ───────────── */
+
+  const beginSegment = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream || !activeRef.current) return;
+
+    chunksRef.current = [];
+    const mimeType = pickRecorderMimeType();
+    let recorder: MediaRecorder;
+    try {
+      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch {
+      setStreamError("Could not start audio recorder.");
+      return;
+    }
+    mimeRef.current = recorder.mimeType || mimeType || "audio/webm";
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mimeRef.current });
+      chunksRef.current = [];
+
+      if (activeRef.current) {
+        beginSegmentRef.current();
+        void processSegmentRef.current(blob);
+      } else {
+        stopMic();
+        releaseWakeLock();
+        recorderRef.current = null;
+        void processSegmentRef.current(blob);
+      }
+    };
+
+    recorder.onerror = () => {
+      if (!activeRef.current) return;
+      activeRef.current = false;
+      clearTimers();
+      stopMic();
+      releaseWakeLock();
+      recorderRef.current = null;
+      chunksRef.current = [];
+      setRecording(false);
+      setStreamError("Audio recording encountered an error.");
+      setPhase("idle");
+    };
+
+    recorderRef.current = recorder;
+    recorder.start();
+  }, [stopMic, releaseWakeLock, clearTimers]);
+
+  beginSegmentRef.current = beginSegment;
+  processSegmentRef.current = processSegment;
+
+  /* ── trigger a cycle: stop current recorder ──────────────── */
+
+  const triggerCycle = useCallback(() => {
+    const rec = recorderRef.current;
+    if (rec?.state === "recording") rec.stop();
+  }, []);
+
+  /* ── start recording ─────────────────────────────────────── */
 
   const startRecording = async () => {
     setLocalError(null);
     setStreamError(null);
     setLiveTranscript("");
     setTimeline([]);
-    setLimitBanner(false);
+    stickToBottomRef.current = true;
     fullCleanup();
 
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -282,72 +338,70 @@ export function StreamingRecitationScreen({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      abortRef.current = new AbortController();
 
-      const mimeType = pickRecorderMimeType();
-      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-      recorderRef.current = recorder;
-      mimeRef.current = recorder.mimeType || mimeType || "audio/webm";
-      chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-          if (recordingActiveRef.current) {
-            schedulePipeline();
-          }
-        }
-      };
-
-      recorder.onstop = () => {
-        recordingActiveRef.current = false;
-        clearTimers();
-        const blob = new Blob(chunksRef.current, { type: mimeRef.current });
-        chunksRef.current = [];
-        stopMic();
-        recorderRef.current = null;
-        setRecording(false);
-
-        void (async () => {
-          if (blob.size < MIN_TRANSCRIBE_BYTES) {
-            return;
-          }
-          setPhase("transcribing");
-          try {
-            const text = await transcribeOnce(blob);
-            if (text) {
-              setLiveTranscript(text);
-              setPhase("searching");
-              const results = await searchOnce(text);
-              appendIfNewVerse(results[0], text);
+      const track = stream.getAudioTracks()[0];
+      if (track) {
+        track.addEventListener(
+          "ended",
+          () => {
+            if (!activeRef.current) return;
+            activeRef.current = false;
+            clearTimers();
+            const rec = recorderRef.current;
+            if (rec) {
+              rec.ondataavailable = null;
+              rec.onstop = null;
+              if (rec.state === "recording") {
+                try {
+                  rec.stop();
+                } catch {
+                  /* ignore */
+                }
+              }
             }
-          } catch (e) {
-            setStreamError(e instanceof Error ? e.message : copy.workingTranscribe);
-          } finally {
+            recorderRef.current = null;
+            chunksRef.current = [];
+            stopMic();
+            releaseWakeLock();
+            setRecording(false);
+            setLocalError(copy.micBlocked);
             setPhase("idle");
-          }
-        })();
-      };
+          },
+          { once: true }
+        );
+      }
 
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLockRef.current = await (
+            navigator as never as {
+              wakeLock: { request: (t: string) => Promise<{ release: () => Promise<void> }> };
+            }
+          ).wakeLock.request("screen");
+        }
+      } catch {
+        /* non-fatal */
+      }
+
+      activeRef.current = true;
       startTsRef.current = Date.now();
       setElapsedMs(0);
+
       elapsedTimerRef.current = setInterval(() => {
-        const elapsed = Date.now() - startTsRef.current;
-        setElapsedMs(Math.min(elapsed, MAX_MS));
-        if (elapsed >= MAX_MS && recorderRef.current?.state === "recording") {
-          setLimitBanner(true);
-          recorderRef.current.stop();
-        }
+        setElapsedMs(Date.now() - startTsRef.current);
       }, 200);
 
-      limitTimerRef.current = setTimeout(() => {
-        if (recorderRef.current?.state === "recording") {
-          setLimitBanner(true);
-          recorderRef.current.stop();
-        }
-      }, MAX_MS);
+      beginSegment();
 
-      recordingActiveRef.current = true;
-      recorder.start(CHUNK_MS);
+      firstCycleTimerRef.current = setTimeout(() => {
+        firstCycleTimerRef.current = null;
+        triggerCycle();
+        if (activeRef.current) {
+          cycleTimerRef.current = setInterval(triggerCycle, SEGMENT_MS);
+        }
+      }, FIRST_SEGMENT_MS);
+
       setRecording(true);
     } catch {
       fullCleanup();
@@ -355,24 +409,32 @@ export function StreamingRecitationScreen({
     }
   };
 
+  /* ── stop recording (user-initiated, processes final segment) */
+
   const stopRecording = () => {
-    clearDebounce();
-    if (recorderRef.current?.state === "recording") {
-      recorderRef.current.stop();
+    activeRef.current = false;
+    clearTimers();
+    setRecording(false);
+
+    const rec = recorderRef.current;
+    if (rec?.state === "recording") {
+      rec.stop();
+    } else {
+      stopMic();
+      releaseWakeLock();
+      recorderRef.current = null;
     }
   };
+
+  /* ── close ───────────────────────────────────────────────── */
 
   const handleClose = () => {
     fullCleanup();
     onClose();
   };
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
-  const progressPct = Math.min(100, (elapsedMs / MAX_MS) * 100);
-  const maxSec = MAX_MS / 1000;
   const sec = Math.floor((elapsedMs % 60000) / 1000);
   const clock = `${Math.floor(elapsedMs / 60000)}:${String(sec).padStart(2, "0")}`;
 
@@ -407,28 +469,35 @@ export function StreamingRecitationScreen({
         </div>
 
         <div className="mt-5 shrink-0 space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-stone-600 sm:text-sm">
-            <span className={langClass}>
-              {recording ? `${clock} / 0:${String(maxSec).padStart(2, "0")}` : "—"}
-            </span>
-            {phase === "transcribing" ? (
-              <span className="text-orange-800">{copy.workingTranscribe}</span>
-            ) : phase === "searching" ? (
-              <span className="text-orange-800">{copy.workingSearch}</span>
-            ) : (
-              <span className="text-stone-400"> </span>
-            )}
+          <div className="flex items-center justify-between gap-3 text-xs font-semibold text-stone-600 sm:text-sm">
+            <span className={`tabular-nums ${langClass}`}>{recording ? clock : "—"}</span>
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+              {recording ? (
+                <span className="inline-flex shrink-0 items-center gap-2 text-orange-800" aria-hidden>
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-600" />
+                  </span>
+                </span>
+              ) : null}
+              {phase !== "idle" ? (
+                <span className={`min-w-0 truncate text-orange-800 ${langClass}`}>
+                  {phase === "transcribing" ? copy.workingTranscribe : copy.workingSearch}
+                </span>
+              ) : (
+                <span className="text-stone-400"> </span>
+              )}
+            </div>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-stone-200">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-orange-500 to-orange-700 transition-[width] duration-150 ease-linear"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
+          {recording ? (
+            <div className="h-1 w-full overflow-hidden rounded-full bg-stone-200">
+              <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500" />
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-2xl border border-orange-200/80 bg-white/60 shadow-inner">
-          <div className="flex h-full max-h-[min(52vh,520px)] flex-col overflow-hidden sm:max-h-[min(56vh,600px)]">
+          <div className="flex h-full flex-col overflow-hidden">
             <div className="shrink-0 border-b border-orange-100 bg-amber-50/80 px-4 py-3 sm:px-5">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-800">{copy.liveTranscriptHeading}</p>
               <p className={`mt-2 min-h-[2.5rem] text-sm leading-relaxed text-stone-800 sm:text-base ${langClass}`}>
@@ -436,7 +505,11 @@ export function StreamingRecitationScreen({
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5">
+            <div
+              ref={scrollViewportRef}
+              onScroll={handleTimelineScroll}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5"
+            >
               {!timeline.length ? (
                 <p className={`py-8 text-center text-sm leading-relaxed text-stone-500 ${langClass}`}>{copy.emptyTimeline}</p>
               ) : (
@@ -447,6 +520,7 @@ export function StreamingRecitationScreen({
                         verse={entry.verse}
                         heardTranscript={entry.heardTranscript}
                         matchLabel={copy.matchLabel}
+                        gurmukhiHeading={copy.gurmukhiHeading}
                         translationHeading={copy.translationHeading}
                         langClass={langClass}
                       />
@@ -458,12 +532,6 @@ export function StreamingRecitationScreen({
             </div>
           </div>
         </div>
-
-        {limitBanner ? (
-          <p className={`mt-3 shrink-0 text-center text-xs font-medium text-amber-800 sm:text-sm ${langClass}`}>
-            {copy.limitReached}
-          </p>
-        ) : null}
 
         {localError ? (
           <p className={`mt-2 shrink-0 text-center text-sm font-semibold text-red-700 ${langClass}`}>{localError}</p>

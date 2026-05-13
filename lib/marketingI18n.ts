@@ -154,16 +154,16 @@ const STRINGS: Record<MarketingLang, MarketingStrings> = {
       stopButton: "Stop session",
       liveTranscriptHeading: "Latest transcription",
       emptyTimeline:
-        "Recognized Gurbani will appear here verse by verse. Keep reciting clearly; the list scrolls as new lines match.",
+        "Recognized Gurbani will appear here verse by verse. Keep reciting clearly; the first verse shows in a few seconds and we keep searching every 10 seconds.",
       workingTranscribe: "Transcribing…",
       workingSearch: "Finding verses…",
       matchLabel: "Matched line",
-      translationHeading: "English meaning",
+      gurmukhiHeading: "Punjabi (Gurmukhi)",
+      translationHeading: "English translation",
       micBlocked: "Microphone access was blocked or unavailable.",
       browserNoMic: "Your browser does not support microphone recording.",
-      limitReached: "Recording stopped at 45 seconds to keep live search reliable.",
       sessionHint:
-        "Audio is sent in short segments while you speak. Each pass updates the transcript and may add the next closest verse when it changes."
+        "The session stays open while you recite. The first verse appears in a few seconds, then we listen and search every 10 seconds. Scroll follows automatically when you are near the bottom."
     }
   },
   pa: {
@@ -268,16 +268,16 @@ const STRINGS: Record<MarketingLang, MarketingStrings> = {
       stopButton: "ਸੈਸ਼ਨ ਰੋਕੋ",
       liveTranscriptHeading: "ਨਵੀਨਤਮ ਲਿਖਤ",
       emptyTimeline:
-        "ਪਛਾਣ ਹੋਈ ਗੁਰਬਾਣੀ ਇੱਥੇ ਹਰ ਪੰਕਤੀ ਬਦਲਣ ਤੇ ਦਿਖੇਗੀ। ਸਾਫ਼ ਪੜ੍ਹਦੇ ਰਹੋ; ਨਵੀਆਂ ਮਿਲਾਂਦੀਆਂ ਪੰਕਤੀਆਂ ਹੇਠਾਂ ਸਕ੍ਰੋਲ ਹੋਣਗੀਆਂ।",
+        "ਪਛਾਣ ਹੋਈ ਗੁਰਬਾਣੀ ਇੱਥੇ ਦਿਖੇਗੀ। ਸਾਫ਼ ਪੜ੍ਹਦੇ ਰਹੋ; ਪਹਿਲੀ ਪੰਕਤੀ ਕੁਝ ਸਕਿੰਟਾਂ ਵਿੱਚ ਆਵੇਗੀ, ਫਿਰ ਹਰ ੧੦ ਸਕਿੰਟ ਬਾਅਦ ਖੋਜ ਹੁੰਦੀ ਰਹੇਗੀ।",
       workingTranscribe: "ਲਿਖੀ ਜਾ ਰਹੀ ਹੈ…",
       workingSearch: "ਪੰਕਤੀਆਂ ਲੱਭ ਰਹੀਆਂ ਹਨ…",
       matchLabel: "ਮਿਲਦੀ ਪੰਕਤੀ",
+      gurmukhiHeading: "ਪੰਜਾਬੀ (ਗੁਰਮੁਖੀ)",
       translationHeading: "ਅੰਗਰੇਜ਼ੀ ਅਰਥ",
       micBlocked: "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
       browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।",
-      limitReached: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
       sessionHint:
-        "ਤੁਸੀਂ ਬੋਲਦੇ ਰਹੋਗੇ ਤਾਂ ਛੋਟੇ-ਛੋਟੇ ਹਿੱਸੇ ਭੇਜੇ ਜਾਂਦੇ ਹਨ। ਹਰ ਵਾਰ ਲਿਖਤ ਅੱਪਡੇਟ ਹੋ ਸਕਦੀ ਹੈ ਅਤੇ ਜਦੋਂ ਨੇੜਲੀ ਪੰਕਤੀ ਬਦਲਦੀ ਹੈ ਤਾਂ ਇੱਥੇ ਨਵੀਂ ਕਤਾਰ ਜੁੜਦੀ ਹੈ।"
+        "ਸੈਸ਼ਨ ਖੁੱਲ੍ਹਾ ਰਹਿੰਦਾ ਹੈ। ਪਹਿਲੀ ਪੰਕਤੀ ਕੁਝ ਸਕਿੰਟਾਂ ਵਿੱਚ ਦਿਖੇਗੀ, ਫਿਰ ਹਰ ੧੦ ਸਕਿੰਟ ਬਾਅਦ ਦੁਬਾਰਾ ਸੁਣ ਕੇ ਖੋਜ ਹੁੰਦੀ ਹੈ। ਹੇਠਾਂ ਵੱਲ ਹੋਵੋ ਤਾਂ ਸੂਚੀ ਆਪੇ ਸਕ੍ਰੋਲ ਹੁੰਦੀ ਹੈ।"
     }
   },
   hi: {
@@ -382,16 +382,16 @@ const STRINGS: Record<MarketingLang, MarketingStrings> = {
       stopButton: "सत्र रोकें",
       liveTranscriptHeading: "नवीनतम लिप्यंतरण",
       emptyTimeline:
-        "पहचानी गई गुरबाणी यहाँ पंक्ति दर पंक्ति दिखेगी। स्पष्ट पढ़ते रहें; नई मिलती पंक्तियाँ नीचे स्क्रॉल होंगी।",
+        "पहचानी गई गुरबाणी यहाँ दिखेगी। स्पष्ट पढ़ते रहें; पहली पंक्ति कुछ सेकंड में आएगी, फिर हर १० सेकंड में खोज होती रहेगी।",
       workingTranscribe: "लिखा जा रहा है…",
       workingSearch: "पंक्तियाँ ढूँढी जा रही हैं…",
       matchLabel: "मिलान वाली पंक्ति",
+      gurmukhiHeading: "पंजाबी (गुरमुखी)",
       translationHeading: "अंग्रेज़ी अर्थ",
       micBlocked: "माइक्रोफ़ोन की अनुमति नहीं मिली या उपलब्ध नहीं है।",
       browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।",
-      limitReached: "लाइव खोज के लिए ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
       sessionHint:
-        "बोलते समय छोटे-छोटे भाग भेजे जाते हैं। हर बार लिप्यंतरण अपडेट हो सकता है और जब निकटतम पंक्ति बदलती है तो यहाँ नई पंक्ति जुड़ती है।"
+        "सत्र खुला रहता है। पहली पंक्ति कुछ सेकंड में दिखेगी, फिर हर १० सेकंड में फिर से सुनकर खोज होती है। नीचे की ओर हों तो सूची स्वतः स्क्रॉल होती है।"
     }
   }
 };
