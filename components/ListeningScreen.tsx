@@ -145,7 +145,7 @@ export function ListeningScreen({
     const h = canvas.height;
     const td = timeDomainRef.current;
     if (!td || td.length !== analyser.fftSize) {
-      timeDomainRef.current = new Uint8Array<ArrayBuffer>(analyser.fftSize);
+      timeDomainRef.current = new Uint8Array<ArrayBuffer>(new ArrayBuffer(analyser.fftSize));
     }
     const buf = timeDomainRef.current!;
     analyser.getByteTimeDomainData(buf);
