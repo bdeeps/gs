@@ -423,11 +423,11 @@ export function StreamingRecitationScreen({
             ) : null}
           </div>
         ) : (
-          <div className="divide-y divide-orange-100/60">
-            {timeline.map((entry, i) => (
-              <StreamingVerseBlock key={entry.key} verse={entry.verse} index={i + 1} />
+          <div className="mx-auto w-full max-w-3xl">
+            {timeline.map((entry) => (
+              <StreamingVerseBlock key={entry.key} verse={entry.verse} />
             ))}
-            <li ref={scrollAnchorRef} aria-hidden className="list-none h-px w-full shrink-0" />
+            <div ref={scrollAnchorRef} aria-hidden className="h-px w-full shrink-0" />
           </div>
         )}
       </div>

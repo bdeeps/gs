@@ -3,10 +3,9 @@ import { toDisplayGurmukhi } from "@/lib/gurbaniScript";
 
 type StreamingVerseBlockProps = {
   verse: VerseSearchResult;
-  index: number;
 };
 
-export function StreamingVerseBlock({ verse, index }: StreamingVerseBlockProps) {
+export function StreamingVerseBlock({ verse }: StreamingVerseBlockProps) {
   const gurmukhiDisplay = toDisplayGurmukhi(verse.gurmukhi);
   const meta = [
     verse.ang ? `Ang ${verse.ang}` : null,
@@ -14,39 +13,33 @@ export function StreamingVerseBlock({ verse, index }: StreamingVerseBlockProps) 
   ].filter(Boolean).join(" · ");
 
   return (
-    <article className="border-b border-orange-100/80 px-4 py-3 last:border-b-0 sm:px-5 sm:py-4">
-      <div className="flex items-baseline gap-2">
-        <span className="shrink-0 text-[10px] font-bold tabular-nums text-orange-400">
-          {String(index).padStart(2, "0")}
-        </span>
-        {meta ? (
-          <span className="truncate text-[11px] font-medium text-stone-400">{meta}</span>
-        ) : null}
-        {Number.isFinite(verse.score) ? (
-          <span className="ml-auto shrink-0 text-[10px] font-semibold tabular-nums text-stone-400">
-            {Math.round(Math.max(0, Math.min(1, verse.score)) * 100)}%
-          </span>
-        ) : null}
-      </div>
-
+    <div className="animate-fade-in px-4 py-6 sm:py-8">
       <p
         lang="pa"
-        className="mt-1.5 font-gurmukhi text-xl leading-relaxed text-stone-950 sm:text-2xl sm:leading-relaxed"
+        className="text-center font-gurmukhi text-2xl leading-relaxed text-stone-950 sm:text-3xl sm:leading-relaxed md:text-[2.5rem] md:leading-relaxed"
       >
         {gurmukhiDisplay}
       </p>
 
       {verse.translation ? (
-        <p lang="en" className="mt-1 text-sm leading-snug text-stone-600">
+        <p lang="en" className="mt-3 text-center text-sm leading-relaxed text-stone-500 sm:text-base md:text-lg md:leading-relaxed">
           {verse.translation}
         </p>
       ) : null}
 
       {verse.translationHi ? (
-        <p lang="hi" className="mt-0.5 text-sm leading-snug text-stone-500">
+        <p lang="hi" className="mt-1.5 text-center text-sm leading-relaxed text-stone-400 sm:text-base md:text-lg md:leading-relaxed">
           {verse.translationHi}
         </p>
       ) : null}
-    </article>
+
+      {meta ? (
+        <p className="mt-3 text-center text-[11px] font-medium tracking-widest text-stone-300 uppercase sm:text-xs">
+          {meta}
+        </p>
+      ) : null}
+
+      <div className="mx-auto mt-6 h-px w-16 bg-orange-200/60 sm:mt-8" aria-hidden />
+    </div>
   );
 }
