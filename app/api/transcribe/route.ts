@@ -38,6 +38,39 @@ function transcribeUserMessage(status: number, detail: string): string {
   return "We could not turn that recording into text. Please try a clearer, slightly longer clip.";
 }
 
+function buildOpenAiForm(audio: Blob, language?: string) {
+  const openAiForm = new FormData();
+  openAiForm.append("model", "whisper-1");
+  if (language) {
+    openAiForm.append("language", language);
+  }
+  openAiForm.append(
+    "prompt",
+    "This is Sikh Gurbani being recited in Punjabi/Gurmukhi."
+  );
+  openAiForm.append("file", audio, filenameForAudioBlob(audio));
+  return openAiForm;
+}
+
+function isUnsupportedLanguageError(status: number, detail: string) {
+  const lower = detail.toLowerCase();
+  return status === 400 && lower.includes("language") && lower.includes("not supported");
+}
+
+async function requestOpenAiTranscription(formData: FormData) {
+  return fetchWithTimeout(
+    "https://api.openai.com/v1/audio/transcriptions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: formData
+    },
+    TRANSCRIPTION_TIMEOUT_MS
+  );
+}
+
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
@@ -78,37 +111,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const openAiForm = new FormData();
-  openAiForm.append("model", "whisper-1");
-  openAiForm.append("language", "pa");
-  openAiForm.append(
-    "prompt",
-    "This is Sikh Gurbani being recited in Punjabi/Gurmukhi."
-  );
-  const uploadName = filenameForAudioBlob(audio);
-  openAiForm.append("file", audio, uploadName);
+  const preferredLanguage = process.env.OPENAI_TRANSCRIBE_LANGUAGE?.trim() || "pa";
 
   try {
-    const response = await fetchWithTimeout(
-      "https://api.openai.com/v1/audio/transcriptions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: openAiForm
-      },
-      TRANSCRIPTION_TIMEOUT_MS
+    let response = await requestOpenAiTranscription(
+      buildOpenAiForm(audio, preferredLanguage)
     );
+    let detail = "";
 
     if (!response.ok) {
-      const detail = await readOpenAiError(response);
-      console.error("[transcribe] OpenAI error", response.status, detail.slice(0, 500));
-      const error = transcribeUserMessage(response.status, detail);
-      return NextResponse.json(
-        { error },
-        { status: response.status >= 500 ? 503 : response.status }
-      );
+      detail = await readOpenAiError(response);
+      if (isUnsupportedLanguageError(response.status, detail)) {
+        console.warn(
+          "[transcribe] language hint rejected, retrying without language",
+          preferredLanguage
+        );
+        response = await requestOpenAiTranscription(buildOpenAiForm(audio));
+      }
+    }
+
+    if (!response.ok) {
+      const finalDetail = detail || (await readOpenAiError(response));
+      console.error("[transcribe] OpenAI error", response.status, finalDetail.slice(0, 500));
+      const error = transcribeUserMessage(response.status, finalDetail);
+      return NextResponse.json({ error }, { status: response.status >= 500 ? 503 : response.status });
     }
 
     const payload = (await response.json()) as { text?: string };
