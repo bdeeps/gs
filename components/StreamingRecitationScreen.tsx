@@ -453,6 +453,7 @@ export function StreamingRecitationScreen({
                 <StreamingVerseBlock verse={entry.verse} />
               </div>
             ))}
+            <div aria-hidden className="h-[50vh]" />
           </div>
         )}
       </div>
