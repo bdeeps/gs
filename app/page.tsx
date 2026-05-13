@@ -74,15 +74,14 @@ export default function Home() {
     },
     {
       title: "Show the right verse",
-      copy: "The closest Gurbani lines appear with Gurmukhi, transliteration, meaning, Ang, Raag, and match confidence."
+      copy: "The closest Gurbani lines appear with Gurmukhi, transliteration, meaning, Ang, and Raag."
     }
   ];
   const promises = [
     "Designed for live diwan use",
-    "Saffron, cream, and deep-blue palette",
-    "One-tap search for non-technical sevadars",
-    "Graceful errors when services are slow",
-    "Railway-ready deployment"
+    "Clear layout for sangat, stage, and projector",
+    "Simple enough for any sevadar to operate",
+    "Steady guidance if the connection is slow"
   ];
 
   return (
@@ -118,10 +117,10 @@ export default function Home() {
               Help the sangat follow Gurbani as it is being recited.
             </h1>
             <p className="mt-7 max-w-2xl text-xl leading-9 text-stone-700">
-              A hosted Gurbani voice search service for Gurudwaras. Sevadars can
-              create an account, open the live search screen, and find the closest
-              shabad from Punjabi recitation so the verse can be shown with care,
-              clarity, and respect.
+              A Gurbani voice search experience for Gurudwaras. Sevadars can create
+              an account, open the live search screen, and find the closest shabad
+              from Punjabi recitation so the verse can be shown with care, clarity,
+              and respect.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -232,7 +231,10 @@ export default function Home() {
               ["Live Diwan Mode", "Large, readable results for projector or stage support."],
               ["Sevadar Friendly", "One clear action: listen, search, and show the closest verse."],
               ["Sacred Presentation", "Gurmukhi first, with transliteration and English meaning below."],
-              ["Hosted On Railway", "Database, vector search, and app startup are prepared for Railway."]
+              [
+                "Steady for the sangat",
+                "Built to stay calm and responsive when many hearts are listening together."
+              ]
             ].map(([title, copy]) => (
               <div key={title} className="rounded-3xl border border-white/10 bg-white/10 p-5">
                 <h3 className="font-semibold text-amber-100">{title}</h3>
