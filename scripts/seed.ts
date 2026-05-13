@@ -132,10 +132,37 @@ async function readJsonLines(filePath: string) {
   return parsed as RawLine[];
 }
 
+/**
+ * Default query JOINs translations (English) and writer names from the
+ * ShabadOS SQLite schema so that every verse includes translation + author.
+ */
+const DEFAULT_SHABADOS_QUERY = `
+  SELECT
+    l.id,
+    l.shabad_id,
+    l.gurmukhi,
+    l.pronunciation  AS transliteration,
+    l.source_page    AS ang,
+    l.order_id,
+    t.translation    AS translation,
+    w.name_english   AS author
+  FROM Lines l
+  LEFT JOIN Translations t
+    ON t.line_id = l.id
+    AND t.translation_source_id = (
+      SELECT ts.id FROM Translation_Sources ts
+      JOIN Languages lang ON lang.id = ts.language_id
+      WHERE lang.name_english = 'English' AND ts.source_id = l.source_id
+      LIMIT 1
+    )
+  LEFT JOIN Shabads s ON s.id = l.shabad_id
+  LEFT JOIN Writers w ON w.id = s.writer_id
+  ORDER BY l.order_id
+`;
+
 function readSqliteLines(filePath: string) {
   const db = new Database(filePath, { readonly: true });
-  const query =
-    process.env.SHABADOS_LINES_QUERY || "SELECT * FROM Lines ORDER BY order_id";
+  const query = process.env.SHABADOS_LINES_QUERY || DEFAULT_SHABADOS_QUERY;
 
   try {
     return db.prepare(query).all() as RawLine[];

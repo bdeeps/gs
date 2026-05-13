@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
 import { pickRecorderMimeType } from "@/lib/recordingMime";
 import type { VerseSearchResult } from "@/lib/types";
+import { AudioWaveform } from "@/components/AudioWaveform";
 import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 
 /**
@@ -489,11 +490,15 @@ export function StreamingRecitationScreen({
               )}
             </div>
           </div>
-          {recording ? (
-            <div className="h-1 w-full overflow-hidden rounded-full bg-stone-200">
-              <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500" />
-            </div>
-          ) : null}
+          <div className="h-10 w-full overflow-hidden rounded-xl bg-stone-100/80 sm:h-12">
+            {recording ? (
+              <AudioWaveform stream={streamRef.current} active={recording} />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <span className="text-xs text-stone-400">—</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-2xl border border-orange-200/80 bg-white/60 shadow-inner">

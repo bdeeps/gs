@@ -2,6 +2,24 @@ import { filenameForAudioBlob } from "./audioUpload";
 import { TRANSCRIPTION_TIMEOUT_MS } from "./config";
 import { fetchWithTimeout, isAbortError } from "./http";
 
+/**
+ * Whisper echoes fragments of its own prompt when it hears silence or noise.
+ * Any transcription containing these English fragments is garbage — not Gurbani.
+ */
+const PROMPT_ECHO_PATTERNS = [
+  "return transcription",
+  "gurmukhi script",
+  "sikh gurbani",
+  "being recited",
+  "clear gurmukhi",
+  "transcription in clear",
+];
+
+function isPromptEcho(text: string): boolean {
+  const lower = text.toLowerCase();
+  return PROMPT_ECHO_PATTERNS.some((p) => lower.includes(p));
+}
+
 export class TranscriptionError extends Error {
   public readonly statusCode: number;
   constructor(message: string, statusCode: number) {
@@ -106,7 +124,12 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
     }
 
     const payload = (await response.json()) as { text?: string };
-    return payload.text?.trim() || "";
+    const text = payload.text?.trim() || "";
+    if (text && isPromptEcho(text)) {
+      console.warn("[transcribe] filtered prompt echo:", text.slice(0, 80));
+      return "";
+    }
+    return text;
   } catch (error) {
     if (error instanceof TranscriptionError) throw error;
     console.error("[transcribe] request failed", error);
