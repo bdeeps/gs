@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #fff7ed;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.font-gurmukhi {
+  font-family: var(--font-gurmukhi), system-ui, sans-serif;
+}
+
+.shadow-soft {
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
+}
+
+.shadow-saffron {
+  box-shadow: 0 28px 90px rgba(154, 52, 18, 0.14);
+}
+
+.bg-saffron-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(251, 191, 36, 0.36), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(249, 115, 22, 0.22), transparent 30%),
+    linear-gradient(135deg, #fff7ed 0%, #fffbeb 45%, #fef3c7 100%);
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-wave {
+  animation: wave 900ms ease-in-out infinite;
+  transform-origin: bottom;
+}
