@@ -75,7 +75,7 @@ export function StreamingRecitationScreen({
   const [phase, setPhase] = useState<"idle" | "transcribing" | "searching">("idle");
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
 
-  const scrollAnchorRef = useRef<HTMLDivElement>(null);
+  const scrollAnchorRef = useRef<HTMLLIElement>(null);
 
   const clearDebounce = useCallback(() => {
     if (debounceRef.current) {
