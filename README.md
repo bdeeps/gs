@@ -18,6 +18,8 @@ A Next.js web app that records Punjabi Gurbani audio, transcribes it with OpenAI
    HF_API_KEY=hf-...
    ```
 
+   **Hugging Face token:** create one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). For the new Inference Providers API, use a **fine-grained** token with **Make calls to Inference Providers** (see [Inference Providers quick tour](https://huggingface.co/docs/api-inference/en/quicktour)). A classic read token may not work for embeddings.
+
 3. Enable the database schema:
 
    ```bash
@@ -86,6 +88,8 @@ HF_API_KEY=hf-your-huggingface-key
 EMBEDDING_MODEL=intfloat/multilingual-e5-large
 PG_POOL_MAX=5
 ```
+
+Embeddings call `https://router.huggingface.co/hf-inference/models/<EMBEDDING_MODEL>/pipeline/feature-extraction` (the legacy `api-inference.huggingface.co` URL returns **404**). Override the base with `HF_INFERENCE_BASE_URL` if Hugging Face changes routing again.
 
 You can omit `SHABADOS_DOWNLOAD_URL` to use the default official stable ShabadOS SQLite release:
 

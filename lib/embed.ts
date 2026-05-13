@@ -12,6 +12,22 @@ function getEmbeddingModel() {
   return process.env.EMBEDDING_MODEL || DEFAULT_MODEL;
 }
 
+/**
+ * Hugging Face retired the legacy serverless URL
+ * `https://api-inference.huggingface.co/pipeline/feature-extraction/...` (it now returns 404).
+ * Current stack uses the router + hf-inference path (same as @huggingface/inference).
+ *
+ * @see https://huggingface.co/docs/api-inference/en/quicktour
+ */
+function getFeatureExtractionUrl() {
+  const base = (process.env.HF_INFERENCE_BASE_URL || "https://router.huggingface.co/hf-inference").replace(
+    /\/+$/,
+    ""
+  );
+  const model = encodeURIComponent(getEmbeddingModel());
+  return `${base}/models/${model}/pipeline/feature-extraction`;
+}
+
 function normalizeEmbedding(payload: HuggingFaceEmbedding): number[] {
   if (!Array.isArray(payload) || payload.length === 0) {
     throw new Error("Embedding provider returned an empty response.");
@@ -62,7 +78,7 @@ async function embedText(input: string, prefix: "query" | "passage") {
     throw new Error("HF_API_KEY is required for embeddings.");
   }
 
-  const endpoint = `https://api-inference.huggingface.co/pipeline/feature-extraction/${getEmbeddingModel()}`;
+  const endpoint = getFeatureExtractionUrl();
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -77,8 +93,7 @@ async function embedText(input: string, prefix: "query" | "passage") {
           },
           body: JSON.stringify({
             inputs: `${prefix}: ${input}`,
-            parameters: { pooling: "mean", normalize: true },
-            options: { wait_for_model: true }
+            parameters: { normalize: true }
           })
         },
         EMBEDDING_TIMEOUT_MS
@@ -88,6 +103,12 @@ async function embedText(input: string, prefix: "query" | "passage") {
         lastError = new Error(`Embedding provider returned ${response.status}.`);
         await wait(attempt * 750);
         continue;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(
+          "Hugging Face rejected the API key. Create a token with permission to call Inference Providers, set it as HF_API_KEY, and redeploy."
+        );
       }
 
       if (!response.ok) {
