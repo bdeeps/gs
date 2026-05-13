@@ -47,10 +47,14 @@ export async function POST(request: Request) {
     const text = await transcribeAudio(audio);
 
     if (!text) {
+      console.log("[live] no transcription produced (silence or prompt echo)");
       return NextResponse.json({ text: "", results: [] as VerseSearchResult[] });
     }
 
+    console.log("[live] transcription:", text.slice(0, 120));
     const results = await searchVerses(text, 1);
+    const topScore = results[0]?.score ?? 0;
+    console.log("[live] top result score:", topScore.toFixed(4), "verse:", results[0]?.gurmukhi?.slice(0, 60) ?? "none");
     return NextResponse.json({ text, results });
   } catch (error) {
     if (error instanceof TranscriptionError) {

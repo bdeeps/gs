@@ -3,6 +3,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { getPool, toVectorLiteral } from "../lib/db";
 import { embedPassage } from "../lib/embed";
+import { toDisplayGurmukhi } from "../lib/gurbaniScript";
 
 const DEFAULT_SHABADOS_DOWNLOAD_URL =
   "https://github.com/shabados/database/releases/download/4.8.7/database.sqlite";
@@ -194,7 +195,9 @@ async function loadLines() {
 }
 
 async function insertVerse(verse: SeedVerse) {
+  const unicodeGurmukhi = toDisplayGurmukhi(verse.gurmukhi);
   const passage = [
+    unicodeGurmukhi !== verse.gurmukhi ? unicodeGurmukhi : null,
     verse.gurmukhi,
     verse.transliteration,
     verse.translation,

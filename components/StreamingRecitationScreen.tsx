@@ -14,7 +14,7 @@ import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 const FIRST_SEGMENT_MS = 5_000;
 const SEGMENT_MS = 10_000;
 const MIN_TRANSCRIBE_BYTES = 4_096;
-const MIN_SCORE_TO_SHOW = 0.26;
+const MIN_SCORE_TO_SHOW = 0.15;
 
 export type StreamingRecitationCopy = {
   title: string;

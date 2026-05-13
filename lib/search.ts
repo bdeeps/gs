@@ -1,6 +1,7 @@
 import { DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT } from "./config";
 import { getPool, toVectorLiteral } from "./db";
 import { embedQuery } from "./embed";
+import { toAsciiGurmukhi } from "./gurbaniScript";
 import type { VerseSearchResult } from "./types";
 
 type VerseRow = {
@@ -27,7 +28,11 @@ export async function searchVerses(
   }
 
   const safeLimit = Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.floor(limit)));
-  const embedding = await embedQuery(cleanQuery);
+  const asciiQuery = toAsciiGurmukhi(cleanQuery);
+  if (asciiQuery !== cleanQuery) {
+    console.log("[search] converted query:", cleanQuery.slice(0, 80), "→", asciiQuery.slice(0, 80));
+  }
+  const embedding = await embedQuery(asciiQuery);
   const { rows } = await getPool().query<VerseRow>(
     `
       SELECT
