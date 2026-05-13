@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from "./http";
 
 const SARVAM_TRANSLATE_URL = "https://api.sarvam.ai/translate";
-const TRANSLATE_TIMEOUT_MS = 10_000;
+const TRANSLATE_TIMEOUT_MS = 5_000;
 
 export async function translateToHindi(text: string): Promise<string | null> {
   const apiKey = process.env.SARVAM_API_KEY;

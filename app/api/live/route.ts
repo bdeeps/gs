@@ -57,9 +57,15 @@ export async function POST(request: Request) {
     const topScore = results[0]?.score ?? 0;
     console.log("[live] top result score:", topScore.toFixed(4), "verse:", results[0]?.gurmukhi?.slice(0, 60) ?? "none");
 
+    const LIVE_TRANSLATE_MS = 2_000;
     const translated = await Promise.all(
       results.map((r) =>
-        r.translation ? translateToHindi(r.translation) : Promise.resolve(null)
+        r.translation
+          ? Promise.race([
+              translateToHindi(r.translation),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), LIVE_TRANSLATE_MS)),
+            ])
+          : Promise.resolve(null)
       )
     );
     const enriched: VerseSearchResult[] = results.map((r, i) => ({
