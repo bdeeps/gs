@@ -13,33 +13,33 @@ export function StreamingVerseBlock({ verse }: StreamingVerseBlockProps) {
   ].filter(Boolean).join(" · ");
 
   return (
-    <div className="animate-fade-in px-4 py-6 sm:py-8">
+    <div className="animate-fade-in px-4 py-4 sm:py-5">
       <p
         lang="pa"
-        className="text-center font-gurmukhi text-2xl leading-relaxed text-stone-950 sm:text-3xl sm:leading-relaxed md:text-[2.5rem] md:leading-relaxed"
+        className="text-center font-gurmukhi text-2xl leading-snug text-stone-950 sm:text-3xl sm:leading-snug md:text-[2.25rem] md:leading-snug"
       >
         {gurmukhiDisplay}
       </p>
 
       {verse.translation ? (
-        <p lang="en" className="mt-3 text-center text-sm leading-relaxed text-stone-500 sm:text-base md:text-lg md:leading-relaxed">
+        <p lang="en" className="mt-2 text-center text-sm leading-snug text-stone-500 sm:text-base">
           {verse.translation}
         </p>
       ) : null}
 
       {verse.translationHi ? (
-        <p lang="hi" className="mt-1.5 text-center text-sm leading-relaxed text-stone-400 sm:text-base md:text-lg md:leading-relaxed">
+        <p lang="hi" className="mt-1 text-center text-sm leading-snug text-stone-400 sm:text-base">
           {verse.translationHi}
         </p>
       ) : null}
 
       {meta ? (
-        <p className="mt-3 text-center text-[11px] font-medium tracking-widest text-stone-300 uppercase sm:text-xs">
+        <p className="mt-2 text-center text-[10px] font-medium tracking-widest text-stone-300 uppercase sm:text-[11px]">
           {meta}
         </p>
       ) : null}
 
-      <div className="mx-auto mt-6 h-px w-16 bg-orange-200/60 sm:mt-8" aria-hidden />
+      <div className="mx-auto mt-4 h-px w-12 bg-orange-200/50" aria-hidden />
     </div>
   );
 }
