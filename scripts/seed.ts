@@ -135,6 +135,13 @@ async function readJsonLines(filePath: string) {
 /**
  * Default query JOINs translations (English) and writer names from the
  * ShabadOS SQLite schema so that every verse includes translation + author.
+ *
+ * ShabadOS schema:
+ *   lines       → shabad_id, source_page (ang), gurmukhi, pronunciation
+ *   shabads     → source_id, writer_id
+ *   translations → line_id, translation_source_id, translation
+ *   translation_sources → source_id, language_id   (English = language_id 1)
+ *   writers     → name_english
  */
 const DEFAULT_SHABADOS_QUERY = `
   SELECT
@@ -146,17 +153,16 @@ const DEFAULT_SHABADOS_QUERY = `
     l.order_id,
     t.translation    AS translation,
     w.name_english   AS author
-  FROM Lines l
-  LEFT JOIN Translations t
+  FROM lines l
+  LEFT JOIN shabads s ON s.id = l.shabad_id
+  LEFT JOIN translations t
     ON t.line_id = l.id
     AND t.translation_source_id = (
-      SELECT ts.id FROM Translation_Sources ts
-      JOIN Languages lang ON lang.id = ts.language_id
-      WHERE lang.name_english = 'English' AND ts.source_id = l.source_id
+      SELECT ts.id FROM translation_sources ts
+      WHERE ts.language_id = 1 AND ts.source_id = s.source_id
       LIMIT 1
     )
-  LEFT JOIN Shabads s ON s.id = l.shabad_id
-  LEFT JOIN Writers w ON w.id = s.writer_id
+  LEFT JOIN writers w ON w.id = s.writer_id
   ORDER BY l.order_id
 `;
 
