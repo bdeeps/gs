@@ -93,14 +93,14 @@ export default function Home() {
   return (
     <main
       lang={lang === "pa" ? "pa" : lang === "hi" ? "hi" : "en"}
-      className="min-h-screen overflow-hidden bg-saffron-page px-5 py-8 text-stone-950 sm:px-8"
+      className="min-h-screen bg-saffron-page px-4 py-8 text-stone-950 sm:px-6 sm:py-10 lg:px-8"
     >
-      <section className="mx-auto flex max-w-7xl flex-col gap-10">
-        <nav className="flex flex-col gap-3 rounded-[1.75rem] border border-white/70 bg-white/55 px-4 py-3 shadow-saffron backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:rounded-full sm:px-5">
+      <section className="mx-auto flex max-w-6xl flex-col gap-8 sm:gap-10">
+        <nav className="flex flex-col gap-3 rounded-2xl border border-stone-200/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div>
-            <p className="font-gurmukhi text-xl font-semibold text-orange-950">ਗੁਰਬਾਣੀ ਖੋਜ</p>
+            <p className="font-gurmukhi text-lg font-medium text-stone-900">ਗੁਰਬਾਣੀ ਖੋਜ</p>
             <p
-              className={`text-xs font-semibold uppercase tracking-wide text-orange-800 ${lang === "pa" ? "font-gurmukhi tracking-normal normal-case sm:text-sm" : lang === "hi" ? "normal-case sm:text-sm" : "tracking-[0.28em]"}`}
+              className={`text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 sm:text-xs ${lang === "pa" ? "font-gurmukhi tracking-normal normal-case" : lang === "hi" ? "normal-case" : ""}`}
             >
               {m.navTagline}
             </p>
@@ -130,60 +130,60 @@ export default function Home() {
             </Link>
             <Link
               href="#search"
-              className="rounded-full bg-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition hover:bg-orange-800 sm:px-5"
+              className="rounded-lg bg-stone-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-900 sm:px-5"
             >
               {m.navTryLiveSearch}
             </Link>
           </div>
         </nav>
 
-        <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="relative rounded-[2.5rem] border border-white/70 bg-white/60 p-8 shadow-saffron backdrop-blur sm:p-12">
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-orange-300/30 blur-3xl" />
-            <p className="mb-5 text-sm font-bold uppercase tracking-[0.35em] text-orange-800">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10">
+          <div className="relative overflow-hidden rounded-2xl border border-stone-200/90 bg-white/90 p-6 shadow-sm backdrop-blur sm:p-8 lg:p-9">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-100/40 blur-3xl" aria-hidden />
+            <p className="relative text-[11px] font-medium uppercase tracking-[0.16em] text-stone-500">
               {m.heroKicker}
             </p>
             <h1
-              className={`max-w-4xl text-5xl font-semibold leading-tight tracking-tight text-stone-950 sm:text-7xl ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "font-[system-ui]" : ""}`}
+              className={`relative mt-3 max-w-2xl text-2xl font-medium leading-snug tracking-tight text-stone-900 sm:text-[1.75rem] lg:text-[1.875rem] ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "font-[system-ui]" : ""}`}
             >
               {m.heroTitle}
             </h1>
             <p
-              className={`mt-7 max-w-2xl text-xl leading-9 text-stone-700 ${lang === "pa" ? "font-gurmukhi" : ""}`}
+              className={`relative mt-5 max-w-xl text-sm leading-relaxed text-stone-600 sm:max-w-2xl sm:text-[0.9375rem] ${lang === "pa" ? "font-gurmukhi" : ""}`}
             >
               {m.heroBody}
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="relative mt-6 grid gap-2 sm:grid-cols-2 sm:gap-2.5">
               {m.promises.map((item, index) => (
                 <div
                   key={`${lang}-promise-${index}`}
-                  className={`rounded-2xl border border-orange-100 bg-amber-50/70 px-4 py-3 text-sm font-semibold text-orange-950 ${lang === "pa" ? "font-gurmukhi leading-relaxed" : lang === "hi" ? "leading-relaxed" : ""}`}
+                  className={`rounded-lg border border-stone-200/80 bg-stone-50/80 px-3 py-2.5 text-xs leading-snug text-stone-700 sm:text-[13px] sm:leading-relaxed ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "leading-relaxed" : ""}`}
                 >
                   {item}
                 </div>
               ))}
             </div>
 
-            <p className="mt-8 font-gurmukhi text-3xl leading-relaxed text-blue-950">
+            <p className="relative mt-8 border-t border-stone-200/80 pt-6 font-gurmukhi text-lg leading-relaxed text-stone-800 sm:text-xl">
               ਸਤਿਗੁਰ ਕੀ ਬਾਣੀ ਸਤਿ ਸਰੂਪੁ ਹੈ ਗੁਰਬਾਣੀ ਬਣੀਐ
             </p>
             <p
-              className={`mt-2 text-sm text-stone-500 ${lang === "pa" ? "font-gurmukhi leading-relaxed" : lang === "hi" ? "leading-relaxed" : ""}`}
+              className={`relative mt-2 max-w-2xl text-xs leading-relaxed text-stone-500 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "leading-relaxed" : ""}`}
             >
               {m.disclaimer}
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="relative mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
               <Link
                 href="/register"
-                className="rounded-full bg-blue-950 px-6 py-3 text-center text-sm font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-blue-900"
+                className="inline-flex justify-center rounded-lg bg-blue-950 px-5 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-blue-900"
               >
                 {m.ctaCreateAccount}
               </Link>
               <a
                 href="#search"
-                className="rounded-full border border-orange-300 bg-white/70 px-6 py-3 text-center text-sm font-bold text-orange-900 transition hover:bg-orange-50"
+                className="inline-flex justify-center rounded-lg border border-stone-300 bg-white px-5 py-2.5 text-center text-sm font-semibold text-stone-800 transition hover:border-stone-400 hover:bg-stone-50"
               >
                 {m.ctaTryVoice}
               </a>
@@ -192,19 +192,19 @@ export default function Home() {
 
           <div
             id="search"
-            className="rounded-[2.5rem] border border-orange-100 bg-gradient-to-br from-white/90 to-amber-50/90 p-7 shadow-saffron backdrop-blur sm:p-9"
+            className="rounded-2xl border border-stone-200/90 bg-white p-6 shadow-sm sm:p-7"
           >
-            <div className="mb-7 text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.3em] text-orange-700">
+            <div className="mb-6 border-b border-stone-100 pb-5 text-left sm:text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500">
                 {m.demoLabel}
               </p>
               <h2
-                className={`mt-3 text-3xl font-semibold text-stone-950 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : ""}`}
+                className={`mt-2 text-lg font-medium text-stone-900 sm:text-xl ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : ""}`}
               >
                 {m.demoTitle}
               </h2>
               <p
-                className={`mt-3 leading-7 text-stone-600 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : ""}`}
+                className={`mt-2 text-sm leading-relaxed text-stone-600 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "" : ""}`}
               >
                 {m.demoHint}
               </p>
@@ -216,16 +216,16 @@ export default function Home() {
               onRecordingComplete={handleRecording}
             />
 
-            <div className="mt-6 text-center">
+            <div className="mt-5 text-center">
               <Link
                 href="/live"
-                className="inline-flex rounded-full border-2 border-orange-700 bg-orange-50 px-5 py-2.5 text-sm font-bold text-orange-950 shadow-md transition hover:bg-orange-100"
+                className="inline-flex rounded-lg border border-stone-300 bg-stone-50 px-4 py-2 text-sm font-semibold text-stone-800 transition hover:border-stone-400 hover:bg-white"
               >
                 {m.streaming.openButton}
               </Link>
             </div>
 
-            <div className="mt-8 rounded-2xl bg-orange-950 px-5 py-4 text-center text-sm text-orange-50">
+            <div className="mt-6 rounded-lg border border-stone-200 bg-stone-900 px-4 py-3 text-center text-xs leading-relaxed text-stone-100 sm:text-[13px]">
               {status === "transcribing" ? (
                 <p className={`font-medium ${lang === "pa" ? "font-gurmukhi" : ""}`}>{m.statusTranscribing}</p>
               ) : null}
@@ -238,27 +238,27 @@ export default function Home() {
               {status === "done" ? (
                 <p className={lang === "pa" ? "font-gurmukhi" : ""}>{m.statusDone}</p>
               ) : null}
-              {error ? <p className="font-medium text-amber-200">{error}</p> : null}
+              {error ? <p className="mt-1 font-medium text-amber-200">{error}</p> : null}
             </div>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
           {m.steps.map((step, index) => (
             <div
               key={`${lang}-step-${index}`}
-              className="rounded-3xl border border-white/70 bg-white/60 p-6 shadow-saffron backdrop-blur"
+              className="rounded-xl border border-stone-200/90 bg-white/90 p-5 shadow-sm"
             >
-              <p className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-orange-700 font-semibold text-white">
+              <p className="mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800 text-xs font-semibold text-white">
                 {index + 1}
               </p>
               <h3
-                className={`text-xl font-semibold text-stone-950 ${lang === "pa" ? "font-gurmukhi" : ""}`}
+                className={`text-base font-medium text-stone-900 ${lang === "pa" ? "font-gurmukhi" : ""}`}
               >
                 {step.title}
               </h3>
               <p
-                className={`mt-3 leading-7 text-stone-600 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "leading-relaxed" : ""}`}
+                className={`mt-2 text-sm leading-relaxed text-stone-600 ${lang === "pa" ? "font-gurmukhi" : lang === "hi" ? "leading-relaxed" : ""}`}
               >
                 {step.copy}
               </p>
@@ -268,41 +268,41 @@ export default function Home() {
 
         <section
           id="account"
-          className="grid gap-5 rounded-[2.5rem] border border-white/70 bg-blue-950 p-7 text-white shadow-saffron sm:p-10 lg:grid-cols-[0.9fr_1.1fr]"
+          className="grid gap-6 rounded-2xl border border-blue-900/30 bg-blue-950 p-6 text-white shadow-sm sm:p-8 lg:grid-cols-[0.95fr_1.05fr] lg:gap-8"
         >
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.32em] text-amber-300">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-amber-200/90">
               {m.accountKicker}
             </p>
-            <h2 className={`mt-4 text-4xl font-semibold leading-tight ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+            <h2 className={`mt-3 text-xl font-medium leading-snug sm:text-2xl ${lang === "pa" ? "font-gurmukhi" : ""}`}>
               {m.accountTitle}
             </h2>
-            <p className={`mt-5 leading-8 text-blue-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+            <p className={`mt-4 text-sm leading-relaxed text-blue-100/95 sm:text-[0.9375rem] ${lang === "pa" ? "font-gurmukhi" : ""}`}>
               {m.accountBody}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/register"
-                className="inline-flex rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-blue-950 shadow transition hover:bg-amber-300"
+                className="inline-flex rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-semibold text-blue-950 shadow-sm transition hover:bg-amber-300"
               >
                 {m.ctaCreateAccount}
               </Link>
               <Link
                 href="/login"
-                className="inline-flex rounded-full border border-white/30 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex rounded-lg border border-white/30 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 Sign in
               </Link>
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {m.features.map((feature, index) => (
-              <div key={`${lang}-feature-${index}`} className="rounded-3xl border border-white/10 bg-white/10 p-5">
-                <h3 className={`font-semibold text-amber-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+              <div key={`${lang}-feature-${index}`} className="rounded-xl border border-white/10 bg-white/5 p-4 sm:p-5">
+                <h3 className={`text-sm font-medium text-amber-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
                   {feature.title}
                 </h3>
-                <p className={`mt-3 leading-7 text-blue-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
+                <p className={`mt-2 text-xs leading-relaxed text-blue-100/90 sm:text-sm ${lang === "pa" ? "font-gurmukhi" : ""}`}>
                   {feature.copy}
                 </p>
               </div>
@@ -311,11 +311,11 @@ export default function Home() {
         </section>
 
         {transcript ? (
-          <div className="w-full rounded-3xl border border-orange-100 bg-white/75 p-6 shadow-saffron">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">
+          <div className="w-full rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">
               {m.transcriptLabel}
             </p>
-            <p className="mt-3 text-lg leading-8 text-stone-800">{transcript}</p>
+            <p className="mt-2 text-sm leading-relaxed text-stone-800 sm:text-base">{transcript}</p>
           </div>
         ) : null}
 
@@ -336,7 +336,7 @@ export default function Home() {
           </div>
         ) : status === "done" ? (
           <div
-            className={`w-full rounded-3xl border border-orange-100 bg-white/80 p-8 text-center text-stone-600 ${lang === "pa" ? "font-gurmukhi" : ""}`}
+            className={`w-full rounded-xl border border-stone-200 bg-white p-6 text-center text-sm text-stone-600 ${lang === "pa" ? "font-gurmukhi" : ""}`}
           >
             {m.noResults}
           </div>

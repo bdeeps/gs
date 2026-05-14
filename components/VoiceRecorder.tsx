@@ -137,16 +137,16 @@ export function VoiceRecorder({
   }
 
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="flex flex-col items-center gap-4">
       <button
         type="button"
         onClick={toggleRecording}
         disabled={disabled}
         className={[
-          "group relative flex h-36 w-36 items-center justify-center rounded-full border text-lg font-semibold transition",
+          "group relative flex h-28 w-28 items-center justify-center rounded-full border text-sm font-medium transition",
           isRecording
-            ? "border-red-200 bg-red-600 text-white shadow-[0_0_0_18px_rgba(220,38,38,0.12)]"
-            : "border-orange-200 bg-gradient-to-br from-amber-100 via-orange-100 to-white text-orange-950 shadow-saffron hover:-translate-y-0.5 hover:border-orange-300",
+            ? "border-red-200 bg-red-600 text-white shadow-[0_0_0_14px_rgba(220,38,38,0.1)]"
+            : "border-stone-200 bg-gradient-to-br from-stone-50 to-white text-stone-800 shadow-md hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-lg",
           disabled ? "cursor-not-allowed opacity-60" : ""
         ].join(" ")}
         aria-pressed={isRecording}
@@ -154,15 +154,15 @@ export function VoiceRecorder({
         <span className="text-center">{isRecording ? v.stop : v.listen}</span>
       </button>
 
-      <div className="h-12">
+      <div className="h-10">
         {isRecording ? (
-          <div className="flex h-12 items-end justify-center gap-1" aria-label={v.ariaListening}>
+          <div className="flex h-10 items-end justify-center gap-1" aria-label={v.ariaListening}>
             {[0, 1, 2, 3, 4, 5, 6].map((bar) => (
               <span
                 key={bar}
-                className="w-2 animate-wave rounded-full bg-orange-600"
+                className="w-1.5 animate-wave rounded-full bg-stone-600"
                 style={{
-                  height: `${18 + (bar % 4) * 7}px`,
+                  height: `${14 + (bar % 4) * 6}px`,
                   animationDelay: `${bar * 90}ms`
                 }}
               />
@@ -171,7 +171,7 @@ export function VoiceRecorder({
         ) : null}
       </div>
 
-      <p className="text-sm text-stone-600">
+      <p className="max-w-xs text-center text-xs leading-relaxed text-stone-600 sm:text-sm">
         {isRecording ? v.hintRecording : v.hintIdle}
       </p>
 
