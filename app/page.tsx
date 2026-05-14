@@ -122,15 +122,18 @@ export default function Home() {
               </button>
             ))}
             <span className="hidden h-6 w-px bg-orange-200 sm:block" aria-hidden />
-            <a href="#account" className="text-sm font-semibold text-blue-950">
+            <Link href="/register" className="text-sm font-semibold text-blue-950 hover:underline">
               {m.navForGurudwaras}
-            </a>
-            <a
+            </Link>
+            <Link href="/login" className="text-sm font-semibold text-stone-600 hover:text-orange-900">
+              Sign in
+            </Link>
+            <Link
               href="#search"
               className="rounded-full bg-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-900/20 transition hover:bg-orange-800 sm:px-5"
             >
               {m.navTryLiveSearch}
-            </a>
+            </Link>
           </div>
         </nav>
 
@@ -172,12 +175,12 @@ export default function Home() {
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="#account"
+              <Link
+                href="/register"
                 className="rounded-full bg-blue-950 px-6 py-3 text-center text-sm font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-blue-900"
               >
                 {m.ctaCreateAccount}
-              </a>
+              </Link>
               <a
                 href="#search"
                 className="rounded-full border border-orange-300 bg-white/70 px-6 py-3 text-center text-sm font-bold text-orange-900 transition hover:bg-orange-50"
@@ -277,6 +280,20 @@ export default function Home() {
             <p className={`mt-5 leading-8 text-blue-100 ${lang === "pa" ? "font-gurmukhi" : ""}`}>
               {m.accountBody}
             </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/register"
+                className="inline-flex rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-blue-950 shadow transition hover:bg-amber-300"
+              >
+                {m.ctaCreateAccount}
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex rounded-full border border-white/30 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Sign in
+              </Link>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
