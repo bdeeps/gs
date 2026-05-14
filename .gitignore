@@ -8,3 +8,4 @@ data/*.sqlite
 data/*.sqlite3
 data/*.db
 *.log
+*.tsbuildinfo
