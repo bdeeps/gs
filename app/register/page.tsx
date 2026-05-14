@@ -36,15 +36,15 @@ export default function RegisterPage() {
     <main className="min-h-screen bg-saffron-page px-5 py-10 text-stone-950 sm:px-8">
       <div className="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-saffron backdrop-blur">
         <p className="font-gurmukhi text-xl font-semibold text-orange-950">ਗੁਰਦੁਆਰਾ ਖਾਤਾ</p>
-        <h1 className="mt-2 text-2xl font-bold text-stone-900">Create Gurudwara account</h1>
+        <h1 className="mt-2 text-2xl font-bold text-stone-900">Register Gurudwara account</h1>
         <p className="mt-2 text-sm leading-relaxed text-stone-600">
-          For sevadars running live Gurbani voice search at your Guru Ghar. We will email you a link to confirm
-          your address.
+          For sevadars who present Gurbani during diwan. We will send a secure link so you may confirm your email
+          before the account is used.
         </p>
 
         {done ? (
           <p className="mt-6 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-            Check your email for a confirmation link. You can close this tab.
+            Please check your email for the confirmation link. You may close this window.
           </p>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">

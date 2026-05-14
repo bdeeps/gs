@@ -35,7 +35,10 @@ export default function ForgotPasswordPage() {
     <main className="min-h-screen bg-saffron-page px-5 py-10 text-stone-950 sm:px-8">
       <div className="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-saffron backdrop-blur">
         <h1 className="text-2xl font-bold text-stone-900">Forgot password</h1>
-        <p className="mt-2 text-sm text-stone-600">We will email you a reset link if this address is registered.</p>
+        <p className="mt-2 text-sm text-stone-600">
+          If this address is registered, we will send a single-use link to reset your password. Please check spam
+          folders as well.
+        </p>
 
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <label className="block text-sm font-semibold text-stone-800">

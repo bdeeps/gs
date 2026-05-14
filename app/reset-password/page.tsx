@@ -39,7 +39,9 @@ function ResetForm() {
   if (!token) {
     return (
       <div className="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-saffron">
-        <p className="text-stone-700">Open the password reset link from your email, or request a new one.</p>
+        <p className="text-stone-700">
+          Open the password reset link from your email, or request a new link from the sign-in page.
+        </p>
         <Link href="/forgot-password" className="mt-4 inline-block font-semibold text-orange-800 hover:underline">
           Request reset link
         </Link>

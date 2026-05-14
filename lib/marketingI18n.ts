@@ -53,345 +53,345 @@ export type MarketingStrings = {
 
 const STRINGS: Record<MarketingLang, MarketingStrings> = {
   en: {
-    navTagline: "Live Gurbani Voice Search",
-    navForGurudwaras: "For Gurudwaras",
-    navTryLiveSearch: "Try Live Search",
-    heroKicker: "Pious Technology For The Guru Ghar",
-    heroTitle: "Help the sangat follow Gurbani as it is being recited.",
+    navTagline: "Live voice search for Gurbani",
+    navForGurudwaras: "Gurudwara access",
+    navTryLiveSearch: "Live search",
+    heroKicker: "Technology in humble service of Guru Ghar",
+    heroTitle: "Support the sangat in remaining with Gurbani as it is recited.",
     heroBody:
-      "A Gurbani voice search experience for Gurudwaras. Sevadars can create an account, open the live search screen, and find the closest shabad from Punjabi recitation so the verse can be shown with care, clarity, and respect.",
+      "A dignified voice-search aid for Gurudwaras. Authorised sevadars may open the live screen and, from clear Punjabi recitation, retrieve the nearest verse so that Gurbani may be presented with adab, clarity, and steadiness—whether on the stage, on a projector, or beside the sangat.",
     promises: [
-      "Designed for live diwan use",
-      "Clear layout for sangat, stage, and projector",
-      "Simple enough for any sevadar to operate",
-      "Steady guidance if the connection is slow"
+      "Prepared for live diwan, katha, and paath",
+      "Clear presentation for sangat, ragis, and projection",
+      "A composed interface that any sevadar on duty may use with confidence",
+      "Measured behaviour when the connection is imperfect"
     ],
     disclaimer:
-      "Built as a support for seva and sangat. It is not a replacement for paath, vichaar, maryada, or learned understanding.",
-    ctaCreateAccount: "Create Gurudwara Account",
-    ctaTryVoice: "Try Voice Search",
-    demoLabel: "Live Demonstration",
-    demoTitle: "Search by Punjabi recitation",
-    demoHint: "For best results, record one clear Gurbani line at a time.",
-    statusTranscribing: "Transcribing Punjabi audio with care...",
-    statusSearching: "Searching the stored Gurbani verses...",
-    statusIdle: "Tap Listen, recite clearly, then tap Stop to search.",
-    statusDone: "Search complete. Closest verses are shown below.",
-    transcriptLabel: "Transcript",
-    noResults: "No matching verses were found.",
+      "Offered solely as humble support for seva. It cannot replace personal or sangat study of Bani, maryada, vichar, or learned guidance.",
+    ctaCreateAccount: "Register Gurudwara account",
+    ctaTryVoice: "Search by voice",
+    demoLabel: "Demonstration",
+    demoTitle: "Search from recitation",
+    demoHint: "Record one complete line of Gurbani with clarity; pause when the line is finished.",
+    statusTranscribing: "Transcribing the recitation with care…",
+    statusSearching: "Searching the treasury of verses…",
+    statusIdle: "Press Listen, recite one line with clarity, then press Stop to search.",
+    statusDone: "The nearest verses are shown below.",
+    transcriptLabel: "Transcription",
+    noResults: "No matching verse was found for this recording.",
     steps: [
       {
-        title: "Create a Gurudwara account",
-        copy: "Each Gurudwara can keep its own live search setup for the stage, projector, and seva team."
+        title: "Register your Gurudwara",
+        copy: "Create an account so your seva team may keep a dedicated live-search setup for the darbar, projection, and programmes."
       },
       {
         title: "Listen during kirtan or paath",
-        copy: "The browser records one short, respectful clip from the microphone and prepares it for search."
+        copy: "The browser captures a brief, respectful passage from the microphone and prepares it for search in silence and focus."
       },
       {
-        title: "Show the right verse",
-        copy: "The closest Gurbani lines appear with Gurmukhi, transliteration, meaning, Ang, and Raag."
+        title: "Present the verse with adab",
+        copy: "The closest lines appear with Gurmukhi, transliteration, meaning, Ang, and Raag—so the sangat may read along with reverence."
       }
     ],
-    accountKicker: "For Gurudwaras",
-    accountTitle: "A calm control room for every Guru Ghar.",
+    accountKicker: "For Guru Ghar",
+    accountTitle: "A quiet place for seva behind the sangat.",
     accountBody:
-      "Create a Gurudwara account for your seva team, open the live browser screen, and use voice search during kirtan, katha, paath, or youth programs. The interface is intentionally simple so a sevadar can operate it without technical training.",
+      "Register for your Gurudwara, open the live screen in the browser, and employ voice search during kirtan, katha, paath, or youth programmes. The design is restrained and deliberate, so a sevadar may serve without distraction from technical detail.",
     features: [
       {
-        title: "Live Diwan Mode",
-        copy: "Large, readable results for projector or stage support."
+        title: "Live diwan presentation",
+        copy: "Large, legible results suited to projector and stage."
       },
       {
-        title: "Sevadar Friendly",
-        copy: "One clear action: listen, search, and show the closest verse."
+        title: "Sevadar-first workflow",
+        copy: "Listen once, search, and display the nearest verse in a single, clear rhythm."
       },
       {
-        title: "Sacred Presentation",
-        copy: "Gurmukhi first, with transliteration and English meaning below."
+        title: "Reverent layout",
+        copy: "Gurmukhi foremost, with transliteration and English meaning beneath."
       },
       {
-        title: "Steady for the sangat",
-        copy: "Built to stay calm and responsive when many hearts are listening together."
+        title: "Steadfast in assembly",
+        copy: "Built to remain calm and dependable when many hearts are gathered in one hall."
       }
     ],
-    verseResult: (rank) => `Result ${rank}`,
-    verseScore: (percent) => `${percent}% match`,
-    verseScoreUnknown: "Match",
+    verseResult: (rank) => `Verse ${rank}`,
+    verseScore: (percent) => `${percent}% correspondence`,
+    verseScoreUnknown: "Correspondence",
     voice: {
       listen: "Listen",
       stop: "Stop",
-      hintIdle: "Tap to record one clear Gurbani line, up to 45 seconds.",
-      hintRecording: "Listening with reverence...",
-      micBlocked: "Microphone access was blocked or unavailable.",
-      browserNoMic: "Your browser does not support microphone recording.",
-      timeout: "Recording stopped at 45 seconds to keep live search reliable.",
+      hintIdle: "Press to record one line of Gurbani, for up to forty-five seconds.",
+      hintRecording: "Listening in stillness…",
+      micBlocked: "The microphone could not be accessed. Please check permissions in your browser.",
+      browserNoMic: "This browser does not support microphone recording.",
+      timeout: "Recording ends at forty-five seconds so that live search remains reliable.",
       ariaListening: "Listening"
     },
     listening: {
-      title: "Live Demonstration",
-      subtitle: "Full listening screen",
+      title: "Demonstration",
+      subtitle: "Full listening view",
       close: "Close",
-      openButton: "Open full listening screen (waveform and timer)",
-      startRecording: "Start recording",
+      openButton: "Open full listening view (waveform and timer)",
+      startRecording: "Begin recording",
       stopRecording: "Stop",
       progressLabel:
-        "The waveform, clock, and bar below update live. Recite one clear Gurbani line; recording stops at 45 seconds.",
-      micWaiting: "Waiting for your voice...",
-      micReceiving: "Microphone is receiving audio",
-      limitInfo: "Recording window",
-      limitReached: "Recording stopped at 45 seconds to keep live search reliable.",
-      tooShort: "That clip was too short. Try again with a slightly longer, clearer recording.",
-      micBlocked: "Microphone access was blocked or unavailable.",
-      browserNoMic: "Your browser does not support microphone recording."
+        "The waveform, clock, and indicator update in real time. Recite one clear line of Gurbani; recording stops at forty-five seconds.",
+      micWaiting: "Awaiting your recitation…",
+      micReceiving: "Microphone is active",
+      limitInfo: "Recording limit",
+      limitReached: "Recording stopped at forty-five seconds to preserve reliable live search.",
+      tooShort: "That passage was too brief. Please try again with a slightly longer, clearer line.",
+      micBlocked: "The microphone could not be accessed. Please check permissions in your browser.",
+      browserNoMic: "This browser does not support microphone recording."
     },
     streaming: {
-      title: "Live streaming",
-      subtitle: "Verses as you recite",
+      title: "Live session",
+      subtitle: "Verses aligned with recitation",
       close: "Close",
-      openButton: "Open live streaming (verses while you recite)",
-      startButton: "Start live session",
-      stopButton: "Stop session",
+      openButton: "Open live session (verses as you recite)",
+      startButton: "Begin session",
+      stopButton: "End session",
       liveTranscriptHeading: "Latest transcription",
       emptyTimeline:
-        "Recognized Gurbani will appear here verse by verse. Keep reciting clearly; the first verse shows in a few seconds and we keep searching every 10 seconds.",
+        "Recognised Gurbani will appear here, line by line. Continue reciting with clarity; the first verse may appear within a few seconds, and search continues at measured intervals.",
       workingTranscribe: "Transcribing…",
-      workingSearch: "Finding verses…",
-      matchLabel: "Matched line",
-      gurmukhiHeading: "Punjabi (Gurmukhi)",
-      translationHeading: "English translation",
-      micBlocked: "Microphone access was blocked or unavailable.",
-      browserNoMic: "Your browser does not support microphone recording.",
+      workingSearch: "Searching verses…",
+      matchLabel: "Corresponding line",
+      gurmukhiHeading: "Gurbani (Gurmukhi)",
+      translationHeading: "English meaning",
+      micBlocked: "The microphone could not be accessed. Please check permissions in your browser.",
+      browserNoMic: "This browser does not support microphone recording.",
       sessionHint:
-        "The session stays open while you recite. The first verse appears in a few seconds, then we listen and search every 10 seconds. Scroll follows automatically when you are near the bottom."
+        "The session remains open while you recite. The first verse may appear shortly; thereafter the system listens and searches at regular intervals. When you remain near the foot of the list, the view follows gently."
     }
   },
   pa: {
     navTagline: "ਗੁਰਬਾਣੀ ਦੀ ਲਾਈਵ ਆਵਾਜ਼ ਖੋਜ",
-    navForGurudwaras: "ਗੁਰਦੁਆਰਿਆਂ ਲਈ",
-    navTryLiveSearch: "ਲਾਈਵ ਖੋਜ ਅਜ਼ਮਾਓ",
-    heroKicker: "ਗੁਰਘਰ ਲਈ ਪਵਿਤਰ ਸੇਵਾ-ਤਕਨੀਕ",
-    heroTitle: "ਸੰਗਤ ਨੂੰ ਪਾਠ ਵੇਲੇ ਗੁਰਬਾਣੀ ਨਾਲ ਜੋੜਨ ਵਿੱਚ ਮਦਦ ਕਰੋ।",
+    navForGurudwaras: "ਗੁਰਦੁਆਰਾ ਪ੍ਰਵੇਸ਼",
+    navTryLiveSearch: "ਲਾਈਵ ਖੋਜ",
+    heroKicker: "ਗੁਰਘਰ ਦੀ ਸੇਵਾ ਵਿੱਚ ਨਿਮਰਤਾ ਨਾਲ ਤਕਨੀਕ",
+    heroTitle: "ਸੰਗਤ ਨੂੰ ਗੁਰਬਾਣੀ ਦੇ ਪਾਠ ਅਤੇ ਕੀਰਤਨ ਨਾਲ ਜੁੜੇ ਰਹਿਣ ਵਿੱਚ ਸਹਾਇਤਾ।",
     heroBody:
-      "ਇਹ ਗੁਰਦੁਆਰਿਆਂ ਲਈ ਗੁਰਬਾਣੀ ਦੀ ਆਵਾਜ਼ ਰਾਹੀਂ ਖੋਜ ਦਾ ਅਨੁਭਵ ਹੈ। ਸੇਵਾਦਾਰ ਆਪਣਾ ਖਾਤਾ ਬਣਾ ਕੇ ਲਾਈਵ ਖੋਜ ਵਾਲੀ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹ ਸਕਦੇ ਹਨ, ਪੰਜਾਬੀ ਉਚਾਰਨ ਅਨੁਸਾਰ ਨੇੜਲਾ ਸ਼ਬਦ ਲੱਭ ਕੇ ਪੰਕਤੀ ਸੰਭਾਲ, ਸਪਸ਼ਟਤਾ ਅਤੇ ਸਤਿਕਾਰ ਨਾਲ ਦਿਖਾ ਸਕਦੇ ਹਨ।",
+      "ਇਹ ਗੁਰਦੁਆਰਿਆਂ ਲਈ ਇੱਕ ਸੰਭਾਲਯੋਗ ਆਵਾਜ਼ ਖੋਜ ਦਾ ਸਾਧਨ ਹੈ। ਅਧਿਕਾਰਤ ਸੇਵਾਦਾਰ ਲਾਈਵ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹ ਕੇ ਸਾਫ਼ ਪੰਜਾਬੀ ਉਚਾਰਨ ਤੋਂ ਨੇੜਲੀ ਪੰਕਤੀ ਲੱਭ ਸਕਦੇ ਹਨ, ਤਾਂ ਜੋ ਗੁਰਬਾਣੀ ਅਦਬ, ਸਪਸ਼ਟਤਾ ਅਤੇ ਠਹਿਰਾਅ ਨਾਲ—ਮੰਚ, ਪ੍ਰੋਜੈਕਟਰ ਜਾਂ ਸੰਗਤ ਸਾਮ੍ਹਣੇ—ਪੇਸ਼ ਹੋ ਸਕੇ।",
     promises: [
-      "ਲਾਈਵ ਦੀਵਾਨ ਲਈ ਤਿਆਰ",
-      "ਸੰਗਤ, ਮੰਚ ਅਤੇ ਪ੍ਰੋਜੈਕਟਰ ਲਈ ਸਾਫ਼ ਦਿੱਖ",
-      "ਹਰ ਸੇਵਾਦਾਰ ਲਈ ਸਰਲ",
-      "ਜੇਕਰ ਇੰਟਰਨੈੱਟ ਹੌਲੀ ਹੋਵੇ ਤਾਂ ਵੀ ਸਹਾਰਾ"
+      "ਲਾਈਵ ਦੀਵਾਨ, ਕਥਾ ਅਤੇ ਪਾਥ ਲਈ ਤਿਆਰ",
+      "ਸੰਗਤ, ਰਾਗੀ ਅਤੇ ਪ੍ਰੋਜੈਕਟਰ ਲਈ ਸਾਫ਼ ਦਿੱਖ",
+      "ਹਰ ਸੇਵਾਦਾਰ ਲਈ ਭਰੋਸੇਮੰਦ, ਸਰਲ ਅੰਤਰਫੇਸ",
+      "ਜਦੋਂ ਸੰਜੋਗ ਘੱਟ ਹੋਵੇ ਤਾਂ ਵੀ ਸੰਤੁਲਿਤ ਚਾਲ"
     ],
     disclaimer:
-      "ਇਹ ਸੇਵਾ ਅਤੇ ਸੰਗਤ ਦੀ ਮਦਦ ਵਾਸਤੇ ਹੈ। ਇਹ ਪਾਠ, ਵਿਚਾਰ, ਮਰਯਾਦਾ ਜਾਂ ਵਿਦਵਤਾ ਦੀ ਥਾਂ ਨਹੀਂ ਲੈ ਸਕਦਾ।",
-    ctaCreateAccount: "ਗੁਰਦੁਆਰਾ ਖਾਤਾ ਬਣਾਓ",
-    ctaTryVoice: "ਆਵਾਜ਼ ਖੋਜ ਅਜ਼ਮਾਓ",
-    demoLabel: "ਲਾਈਵ ਨਮੂਨਾ",
-    demoTitle: "ਪੰਜਾਬੀ ਉਚਾਰਨ ਨਾਲ ਖੋਜ",
-    demoHint: "ਸਭ ਤੋਂ ਵਧੀਆ ਨਤੀਜੇ ਲਈ ਇੱਕ ਵਾਰ ਇੱਕ ਸਾਫ਼ ਗੁਰਬਾਣੀ ਪੰਕਤੀ ਰਿਕਾਰਡ ਕਰੋ।",
-    statusTranscribing: "ਪੰਜਾਬੀ ਆਵਾਜ਼ ਸੰਭਾਲ ਨਾਲ ਲਿਖੀ ਜਾ ਰਹੀ ਹੈ...",
-    statusSearching: "ਸੰਭਾਲੀ ਗੁਰਬਾਣੀ ਵਿੱਚੋਂ ਖੋਜ ਹੋ ਰਹੀ ਹੈ...",
-    statusIdle: "ਸੁਣੋ ਦਬਾਓ, ਸਾਫ਼ ਪੜ੍ਹੋ, ਫਿਰ ਰੋਕੋ ਦਬਾਓ।",
-    statusDone: "ਖੋਜ ਪੂਰੀ। ਹੇਠਾਂ ਨੇੜਲੀਆਂ ਪੰਕਤੀਆਂ ਹਨ।",
+      "ਇਹ ਕੇਵਲ ਸੇਵਾ ਦੀ ਨਿਮਾਣੀ ਮਦਦ ਹੈ। ਇਹ ਬਾਣੀ ਦੇ ਅਧਿਐਨ, ਮਰਯਾਦਾ, ਵਿਚਾਰ ਜਾਂ ਵਿਦਵਤਾ ਦੀ ਥਾਂ ਨਹੀਂ ਲੈ ਸਕਦਾ।",
+    ctaCreateAccount: "ਗੁਰਦੁਆਰਾ ਖਾਤਾ ਦਰਜ ਕਰੋ",
+    ctaTryVoice: "ਆਵਾਜ਼ ਨਾਲ ਖੋਜ",
+    demoLabel: "ਨਮੂਨਾ",
+    demoTitle: "ਉਚਾਰਨ ਅਨੁਸਾਰ ਖੋਜ",
+    demoHint: "ਇੱਕ ਪੂਰੀ ਪੰਕਤੀ ਸਾਫ਼ ਬੋਲ ਕੇ ਰਿਕਾਰਡ ਕਰੋ; ਪੰਕਤੀ ਪੂਰੀ ਹੋਣ ਤੇ ਰੁਕੋ।",
+    statusTranscribing: "ਉਚਾਰਨ ਸੰਭਾਲ ਨਾਲ ਲਿਖਿਆ ਜਾ ਰਿਹਾ ਹੈ…",
+    statusSearching: "ਬਾਣੀ ਦੇ ਖਜ਼ਾਨੇ ਵਿੱਚੋਂ ਖੋਜ…",
+    statusIdle: "ਸੁਣੋ ਦਬਾਓ, ਇੱਕ ਪੰਕਤੀ ਸਾਫ਼ ਪੜ੍ਹੋ, ਫਿਰ ਖੋਜ ਲਈ ਰੋਕੋ ਦਬਾਓ।",
+    statusDone: "ਨੇੜਲੀਆਂ ਪੰਕਤੀਆਂ ਹੇਠ ਦਿਖਾਈ ਗਈਆਂ ਹਨ।",
     transcriptLabel: "ਲਿਖਤ",
-    noResults: "ਕੋਈ ਮੇਲ ਖਾਂਦੀ ਪੰਕਤੀ ਨਹੀਂ ਮਿਲੀ।",
+    noResults: "ਇਸ ਰਿਕਾਰਡਿੰਗ ਲਈ ਕੋਈ ਮੇਲ ਖਾਂਦੀ ਪੰਕਤੀ ਨਹੀਂ ਮਿਲੀ।",
     steps: [
       {
-        title: "ਗੁਰਦੁਆਰਾ ਖਾਤਾ ਬਣਾਓ",
-        copy: "ਹਰ ਗੁਰਦੁਆਰਾ ਮੰਚ, ਪ੍ਰੋਜੈਕਟਰ ਅਤੇ ਸੇਵਾ ਟੀਮ ਲਈ ਆਪਣੀ ਲਾਈਵ ਖੋਜ ਤਿਆਰ ਰੱਖ ਸਕਦਾ ਹੈ।"
+        title: "ਗੁਰਦੁਆਰਾ ਦਰਜ ਕਰੋ",
+        copy: "ਖਾਤਾ ਬਣਾਓ ਤਾਂ ਜੋ ਸੇਵਾ ਟੀਮ ਦਰਬਾਰ, ਪ੍ਰੋਜੈਕਸ਼ਨ ਅਤੇ ਪ੍ਰੋਗਰਾਮਾਂ ਲਈ ਲਾਈਵ ਖੋਜ ਤਿਆਰ ਰੱਖ ਸਕੇ।"
       },
       {
         title: "ਕੀਰਤਨ ਜਾਂ ਪਾਠ ਵੇਲੇ ਸੁਣੋ",
-        copy: "ਬ੍ਰਾਊਜ਼ਰ ਮਾਈਕ ਤੋਂ ਇੱਕ ਛੋਟੀ ਸਤਿਕਾਰਯੋਗ ਕਲਿਪ ਲੈ ਕੇ ਖੋਜ ਲਈ ਤਿਆਰ ਕਰਦਾ ਹੈ।"
+        copy: "ਬ੍ਰਾਊਜ਼ਰ ਮਾਈਕ ਤੋਂ ਛੋਟਾ, ਸਤਿਕਾਰਯੋਗ ਅੰਸ਼ ਲੈ ਕੇ ਚੁੱਪ ਤੇ ਧਿਆਨ ਨਾਲ ਖੋਜ ਲਈ ਤਿਆਰ ਕਰਦਾ ਹੈ।"
       },
       {
-        title: "ਸਹੀ ਪੰਕਤੀ ਦਿਖਾਓ",
-        copy: "ਨੇੜਲੀਆਂ ਪੰਕਤੀਆਂ ਗੁਰਮੁਖੀ, ਰੋਮਨ ਲਿਪੀ, ਅਰਥ, ਅੰਗ ਅਤੇ ਰਾਗ ਸਮੇਤ ਦਿਖਾਈ ਦਿੰਦੀਆਂ ਹਨ।"
+        title: "ਪੰਕਤੀ ਅਦਬ ਨਾਲ ਦਿਖਾਓ",
+        copy: "ਨੇੜਲੀਆਂ ਪੰਕਤੀਆਂ ਗੁਰਮੁਖੀ, ਰੋਮਨ, ਅਰਥ, ਅੰਗ ਅਤੇ ਰਾਗ ਸਮੇਤ—ਸੰਗਤ ਸਤਿਕਾਰ ਨਾਲ ਪੜ੍ਹ ਸਕੇ।"
       }
     ],
-    accountKicker: "ਗੁਰਦੁਆਰਿਆਂ ਲਈ",
-    accountTitle: "ਹਰ ਗੁਰਘਰ ਲਈ ਸ਼ਾਂਤ ਨਿਯੰਤਰਣ ਥਾਂ।",
+    accountKicker: "ਗੁਰਘਰ ਲਈ",
+    accountTitle: "ਸੰਗਤ ਪਿੱਛੇ ਸੇਵਾ ਲਈ ਸ਼ਾਂਤ ਥਾਂ।",
     accountBody:
-      "ਸੇਵਾ ਟੀਮ ਲਈ ਗੁਰਦੁਆਰਾ ਖਾਤਾ ਬਣਾਓ, ਲਾਈਵ ਬ੍ਰਾਊਜ਼ਰ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹੋ, ਅਤੇ ਕੀਰਤਨ, ਕਥਾ, ਪਾਥ ਜਾਂ ਨੌਜਵਾਨ ਪ੍ਰੋਗਰਾਮਾਂ ਦੌਰਾਨ ਆਵਾਜ਼ ਖੋਜ ਵਰਤੋ। ਇੰਟਰਫੇਸ ਇਸ ਲਈ ਸਰਲ ਬਣਾਇਆ ਗਿਆ ਹੈ ਕਿ ਕੋਈ ਵੀ ਸੇਵਾਦਾਰ ਬਿਨਾਂ ਤਕਨੀਕੀ ਸਿਖਲਾਈ ਦੇ ਵਰਤ ਸਕੇ।",
+      "ਆਪਣੇ ਗੁਰਦੁਆਰੇ ਲਈ ਦਰਜ ਕਰੋ, ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਲਾਈਵ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹੋ, ਅਤੇ ਕੀਰਤਨ, ਕਥਾ, ਪਾਥ ਜਾਂ ਨੌਜਵਾਨ ਪ੍ਰੋਗਰਾਮਾਂ ਦੌਰਾਨ ਆਵਾਜ਼ ਖੋਜ ਵਰਤੋ। ਡਿਜ਼ਾਇਨ ਸਾਦਾ ਅਤੇ ਸੋਚ-ਸਮਝ ਕੇ ਹੈ, ਤਾਂ ਜੋ ਸੇਵਾਦਾਰ ਤਕਨੀਕੀ ਵਿਸਤਾਰ ਤੋਂ ਵਿਚਲਿਤ ਨ ਹੋਵੇ।",
     features: [
       {
-        title: "ਲਾਈਵ ਦੀਵਾਨ ਢੰਗ",
-        copy: "ਪ੍ਰੋਜੈਕਟਰ ਜਾਂ ਮੰਚ ਲਈ ਵੱਡੇ, ਸਾਫ਼ ਨਤੀਜੇ।"
+        title: "ਲਾਈਵ ਦੀਵਾਨ ਪੇਸ਼ਕਾਰੀ",
+        copy: "ਪ੍ਰੋਜੈਕਟਰ ਅਤੇ ਮੰਚ ਲਈ ਵੱਡੇ, ਸਪਸ਼ਟ ਨਤੀਜੇ।"
       },
       {
-        title: "ਸੇਵਾਦਾਰ ਅਨੁਕੂਲ",
-        copy: "ਇੱਕ ਸਾਫ਼ ਕੰਮ: ਸੁਣੋ, ਖੋਜੋ, ਨੇੜਲੀ ਪੰਕਤੀ ਦਿਖਾਓ।"
+        title: "ਸੇਵਾਦਾਰ-ਕੇਂਦਰੀ ਕਾਰਜ",
+        copy: "ਇੱਕ ਵਾਰ ਸੁਣੋ, ਖੋਜੋ, ਨੇੜਲੀ ਪੰਕਤੀ ਦਿਖਾਓ—ਸਪਸ਼ਟ ਲੈਅ ਵਿੱਚ।"
       },
       {
-        title: "ਪਵਿਤਰ ਪੇਸ਼ਕਾਰੀ",
-        copy: "ਪਹਿਲਾਂ ਗੁਰਮੁਖੀ, ਹੇਠਾਂ ਰੋਮਨ ਲਿਪੀ ਅਤੇ ਅੰਗਰੇਜ਼ੀ ਅਰਥ।"
+        title: "ਸਤਿਕਾਰਯੋਗ ਰੂਪਰੇਖਾ",
+        copy: "ਪਹਿਲਾਂ ਗੁਰਮੁਖੀ, ਹੇਠਾਂ ਰੋਮਨ ਅਤੇ ਅੰਗਰੇਜ਼ੀ ਅਰਥ।"
       },
       {
-        title: "ਸੰਗਤ ਲਈ ਭਰੋਸੇਯੋਗ",
-        copy: "ਜਦੋਂ ਬਹੁਤ ਸਾਰੇ ਦਿਲ ਇੱਕਠੇ ਸੁਣ ਰਹੇ ਹੋਣ, ਤਾਂ ਵੀ ਸ਼ਾਂਤ ਅਤੇ ਤਤਪਰ ਰਹਿਣ ਲਈ ਬਣਾਇਆ ਗਿਆ ਹੈ।"
+        title: "ਸੰਗਤ ਵਿੱਚ ਭਰੋਸਾ",
+        copy: "ਜਦੋਂ ਕਈ ਹਿਰਦੇ ਇੱਕ ਹਾਲ ਵਿੱਚ ਇਕੱਠੇ ਹੋਣ, ਤਾਂ ਵੀ ਸ਼ਾਂਤ ਅਤੇ ਭਰੋਸੇਯੋਗ।"
       }
     ],
-    verseResult: (rank) => `ਨਤੀਜਾ ${rank}`,
-    verseScore: (percent) => `${percent}% ਮਿਲਾਨ`,
-    verseScoreUnknown: "ਮਿਲਾਨ",
+    verseResult: (rank) => `ਪੰਕਤੀ ${rank}`,
+    verseScore: (percent) => `${percent}% ਮੇਲ`,
+    verseScoreUnknown: "ਮੇਲ",
     voice: {
       listen: "ਸੁਣੋ",
       stop: "ਰੋਕੋ",
-      hintIdle: "ਇੱਕ ਸਾਫ਼ ਗੁਰਬਾਣੀ ਪੰਕਤੀ ੪੫ ਸਕਿੰਟ ਤੱਕ ਰਿਕਾਰਡ ਕਰਨ ਲਈ ਦਬਾਓ।",
-      hintRecording: "ਸਤਿਕਾਰ ਨਾਲ ਸੁਣ ਰਹੇ ਹਾਂ...",
-      micBlocked: "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
-      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।",
-      timeout: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
+      hintIdle: "ਇੱਕ ਗੁਰਬਾਣੀ ਪੰਕਤੀ ੪੫ ਸਕਿੰਟ ਤੱਕ ਰਿਕਾਰਡ ਕਰਨ ਲਈ ਦਬਾਓ।",
+      hintRecording: "ਚੁੱਪ ਵਿੱਚ ਸੁਣ ਰਹੇ ਹਾਂ…",
+      micBlocked: "ਮਾਈਕ ਦੀ ਪਹੁੰਚ ਨਹੀਂ ਹੋ ਸਕੀ। ਬ੍ਰਾਊਜ਼ਰ ਦੀਆਂ ਇਜਾਜ਼ਤਾਂ ਜਾਂਚੋ।",
+      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਉਪਲਬਧ ਨਹੀਂ।",
+      timeout: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕਦੀ ਹੈ।",
       ariaListening: "ਸੁਣ ਰਹੇ ਹਾਂ"
     },
     listening: {
-      title: "ਲਾਈਵ ਨਮੂਨਾ",
+      title: "ਨਮੂਨਾ",
       subtitle: "ਪੂਰੀ ਸੁਣਨ ਵਾਲੀ ਸਕ੍ਰੀਨ",
       close: "ਬੰਦ ਕਰੋ",
-      openButton: "ਲਾਈਵ ਤਰੱਕੀ ਨਾਲ ਪੂਰੀ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹੋ",
+      openButton: "ਪੂਰੀ ਸਕ੍ਰੀਨ ਖੋਲ੍ਹੋ (ਲਹਿਰ ਅਤੇ ਘੜੀ)",
       startRecording: "ਰਿਕਾਰਡ ਸ਼ੁਰੂ",
       stopRecording: "ਰੋਕੋ",
       progressLabel:
-        "ਲਹਿਰ, ਘੜੀ ਅਤੇ ਹੇਠਲੀ ਪੱਟੀ ਲਾਈਵ ਅੱਪਡੇਟ ਹੁੰਦੀਆਂ ਹਨ। ਇੱਕ ਸਾਫ਼ ਗੁਰਬਾਣੀ ਪੰਕਤੀ ਬੋਲੋ; ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਜਾਵੇਗੀ।",
-      micWaiting: "ਤੁਹਾਡੀ ਆਵਾਜ਼ ਦੀ ਉਡੀਕ...",
-      micReceiving: "ਮਾਈਕ ਆਵਾਜ਼ ਲੈ ਰਿਹਾ ਹੈ",
-      limitInfo: "ਰਿਕਾਰਡਿੰਗ ਸਮਾਂ",
-      limitReached: "ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
-      tooShort: "ਕਲਿਪ ਬਹੁਤ ਛੋਟੀ ਸੀ। ਥੋੜ੍ਹੀ ਲੰਮੀ ਅਤੇ ਸਾਫ਼ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
-      micBlocked: "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
-      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।"
+        "ਲਹਿਰ, ਘੜੀ ਅਤੇ ਸੂਚਕ ਲਾਈਵ ਅੱਪਡੇਟ ਹੁੰਦੇ ਹਨ। ਇੱਕ ਸਾਫ਼ ਗੁਰਬਾਣੀ ਪੰਕਤੀ ਬੋਲੋ; ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਜਾਵੇਗੀ।",
+      micWaiting: "ਉਚਾਰਨ ਦੀ ਉਡੀਕ…",
+      micReceiving: "ਮਾਈਕ ਸਰਗਰਮ ਹੈ",
+      limitInfo: "ਰਿਕਾਰਡਿੰਗ ਸੀਮਾ",
+      limitReached: "ਭਰੋਸੇਮੰਦ ਲਾਈਵ ਖੋਜ ਲਈ ੪੫ ਸਕਿੰਟ ਬਾਅਦ ਰਿਕਾਰਡਿੰਗ ਰੁਕ ਗਈ।",
+      tooShort: "ਅੰਸ਼ ਬਹੁਤ ਛੋਟਾ ਸੀ। ਥੋੜ੍ਹਾ ਲੰਮਾ ਅਤੇ ਸਾਫ਼ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+      micBlocked: "ਮਾਈਕ ਦੀ ਪਹੁੰਚ ਨਹੀਂ ਹੋ ਸਕੀ। ਬ੍ਰਾਊਜ਼ਰ ਦੀਆਂ ਇਜਾਜ਼ਤਾਂ ਜਾਂਚੋ।",
+      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਉਪਲਬਧ ਨਹੀਂ।"
     },
     streaming: {
-      title: "ਲਾਈਵ ਸਟ੍ਰੀਮਿੰਗ",
+      title: "ਲਾਈਵ ਸੈਸ਼ਨ",
       subtitle: "ਉਚਾਰਨ ਅਨੁਸਾਰ ਪੰਕਤੀਆਂ",
       close: "ਬੰਦ ਕਰੋ",
-      openButton: "ਲਾਈਵ ਸਟ੍ਰੀਮਿੰਗ ਖੋਲ੍ਹੋ (ਪੜ੍ਹਦੇ ਜਾਓ, ਪੰਕਤੀਆਂ ਆਉਂਦੀਆਂ ਜਾਣਗੀਆਂ)",
-      startButton: "ਲਾਈਵ ਸੈਸ਼ਨ ਸ਼ੁਰੂ",
-      stopButton: "ਸੈਸ਼ਨ ਰੋਕੋ",
+      openButton: "ਲਾਈਵ ਸੈਸ਼ਨ ਖੋਲ੍ਹੋ (ਪੜ੍ਹਦੇ ਜਾਓ, ਪੰਕਤੀਆਂ ਆਉਂਦੀਆਂ ਰਹਿਣਗੀਆਂ)",
+      startButton: "ਸੈਸ਼ਨ ਸ਼ੁਰੂ",
+      stopButton: "ਸੈਸ਼ਨ ਸਮਾਪਤ",
       liveTranscriptHeading: "ਨਵੀਨਤਮ ਲਿਖਤ",
       emptyTimeline:
-        "ਪਛਾਣ ਹੋਈ ਗੁਰਬਾਣੀ ਇੱਥੇ ਦਿਖੇਗੀ। ਸਾਫ਼ ਪੜ੍ਹਦੇ ਰਹੋ; ਪਹਿਲੀ ਪੰਕਤੀ ਕੁਝ ਸਕਿੰਟਾਂ ਵਿੱਚ ਆਵੇਗੀ, ਫਿਰ ਹਰ ੧੦ ਸਕਿੰਟ ਬਾਅਦ ਖੋਜ ਹੁੰਦੀ ਰਹੇਗੀ।",
+        "ਪਛਾਣ ਹੋਈ ਗੁਰਬਾਣੀ ਇੱਥੇ ਪੰਕਤੀ ਦਰ ਪੰਕਤੀ ਦਿਖੇਗੀ। ਸਾਫ਼ ਪੜ੍ਹਦੇ ਰਹੋ; ਪਹਿਲੀ ਪੰਕਤੀ ਕੁਝ ਸਕਿੰਟਾਂ ਵਿੱਚ ਆ ਸਕਦੀ ਹੈ, ਖੋਜ ਨਿਯਤ ਅੰਤਰਾਲਾਂ ਤੇ ਚਲਦੀ ਰਹੇਗੀ।",
       workingTranscribe: "ਲਿਖੀ ਜਾ ਰਹੀ ਹੈ…",
       workingSearch: "ਪੰਕਤੀਆਂ ਲੱਭ ਰਹੀਆਂ ਹਨ…",
-      matchLabel: "ਮਿਲਦੀ ਪੰਕਤੀ",
-      gurmukhiHeading: "ਪੰਜਾਬੀ (ਗੁਰਮੁਖੀ)",
+      matchLabel: "ਸੰਬੰਧਤ ਪੰਕਤੀ",
+      gurmukhiHeading: "ਗੁਰਬਾਣੀ (ਗੁਰਮੁਖੀ)",
       translationHeading: "ਅੰਗਰੇਜ਼ੀ ਅਰਥ",
-      micBlocked: "ਮਾਈਕ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ ਜਾਂ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
-      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਨਹੀਂ ਹੈ।",
+      micBlocked: "ਮਾਈਕ ਦੀ ਪਹੁੰਚ ਨਹੀਂ ਹੋ ਸਕੀ। ਬ੍ਰਾਊਜ਼ਰ ਦੀਆਂ ਇਜਾਜ਼ਤਾਂ ਜਾਂਚੋ।",
+      browserNoMic: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਮਾਈਕ ਰਿਕਾਰਡਿੰਗ ਉਪਲਬਧ ਨਹੀਂ।",
       sessionHint:
-        "ਸੈਸ਼ਨ ਖੁੱਲ੍ਹਾ ਰਹਿੰਦਾ ਹੈ। ਪਹਿਲੀ ਪੰਕਤੀ ਕੁਝ ਸਕਿੰਟਾਂ ਵਿੱਚ ਦਿਖੇਗੀ, ਫਿਰ ਹਰ ੧੦ ਸਕਿੰਟ ਬਾਅਦ ਦੁਬਾਰਾ ਸੁਣ ਕੇ ਖੋਜ ਹੁੰਦੀ ਹੈ। ਹੇਠਾਂ ਵੱਲ ਹੋਵੋ ਤਾਂ ਸੂਚੀ ਆਪੇ ਸਕ੍ਰੋਲ ਹੁੰਦੀ ਹੈ।"
+        "ਸੈਸ਼ਨ ਖੁੱਲ੍ਹਾ ਰਹਿੰਦਾ ਹੈ। ਪਹਿਲੀ ਪੰਕਤੀ ਛੇਤੀ ਦਿਖ ਸਕਦੀ ਹੈ; ਫਿਰ ਸਿਸਟਮ ਨਿਯਤ ਅੰਤਰਾਲਾਂ ਤੇ ਸੁਣਦਾ ਅਤੇ ਖੋਜਦਾ ਹੈ। ਜਦੋਂ ਤੁਸੀਂ ਸੂਚੀ ਦੇ ਨੇੜੇ ਹੋਵੋ, ਦ੍ਰਿਸ਼ ਹੌਲੀ ਨਾਲ ਅਨੁਸਰਣ ਕਰਦਾ ਹੈ।"
     }
   },
   hi: {
-    navTagline: "लाइव गुरबाणी आवाज़ खोज",
-    navForGurudwaras: "गुरुद्वारों के लिए",
-    navTryLiveSearch: "लाइव खोज आज़माएँ",
-    heroKicker: "गुरुघर के लिए पवित्र सेवा-प्रौद्योगिकी",
-    heroTitle: "संगत को पाठ के समय गुरबाणी के साथ जोड़ने में मदद करें।",
+    navTagline: "गुरबाणी की लाइव आवाज़ खोज",
+    navForGurudwaras: "गुरुद्वारा प्रवेश",
+    navTryLiveSearch: "लाइव खोज",
+    heroKicker: "गुरघर की सेवा में विनम्र तकनीक",
+    heroTitle: "संगत को कीर्तन और पाठ के साथ गुरबाणी में बने रहने में सहायता।",
     heroBody:
-      "यह गुरुद्वारों के लिए गुरबाणी की आवाज़ से खोज का अनुभव है। सेवादार खाता बनाकर लाइव खोज स्क्रीन खोल सकते हैं, पंजाबी उच्चारण के आधार पर निकटतम शबद ढूँढकर पंक्ति को सम्मान, स्पष्टता और सावधानी से दिखा सकते हैं।",
+      "गुरुद्वारों के लिए यह एक संयत आवाज़-खोज साधन है। अधिकृत सेवादार लाइव स्क्रीन खोलकर स्पष्ट पंजाबी उच्चारण से निकटतम पंक्ति प्राप्त कर सकते हैं, ताकि गुरबाणी आदब, स्पष्टता और धैर्य के साथ—मंच, प्रोजेक्टर या संगत के समक्ष—प्रस्तुत हो सके।",
     promises: [
-      "लाइव दीवान के लिए तैयार",
-      "संगत, मंच और प्रोजेक्टर के लिए साफ़ दिखावट",
-      "हर सेवादार के लिए सरल",
-      "यदि कनेक्शन धीमा हो तो भी सहारा"
+      "लाइव दीवान, कथा और पाठ हेतु तैयार",
+      "संगत, रागी और प्रोजेक्टर हेतु स्पष्ट दृश्यावली",
+      "प्रत्येक सेवादार हेतु विश्वसनीय, सरल अंतराफलक",
+      "संयोजन कमज़ोर होने पर भी संतुलित व्यवहार"
     ],
     disclaimer:
-      "यह सेवा और संगत की सहायता के लिए है। यह पाठ, विचार, मर्यादा या विद्वता का स्थान नहीं ले सकता।",
-    ctaCreateAccount: "गुरुद्वारा खाता बनाएँ",
-    ctaTryVoice: "आवाज़ खोज आज़माएँ",
-    demoLabel: "लाइव नमूना",
-    demoTitle: "पंजाबी उच्चारण से खोज",
-    demoHint: "सबसे अच्छे परिणाम के लिए एक समय में एक स्पष्ट गुरबाणी पंक्ति रिकॉर्ड करें।",
-    statusTranscribing: "पंजाबी आवाज़ को सावधानी से लिखा जा रहा है...",
-    statusSearching: "संग्रहीत गुरबाणी में खोज हो रही है...",
-    statusIdle: "सुनें दबाएँ, स्पष्ट पढ़ें, फिर रोकें दबाएँ।",
-    statusDone: "खोज पूर्ण। नीचे निकटतम पंक्तियाँ हैं।",
+      "यह केवल सेवा की विनम्र सहायता है। यह बानी के अध्ययन, मर्यादा, विचार या विद्वता का स्थान नहीं ले सकता।",
+    ctaCreateAccount: "गुरुद्वारा खाता पंजीकृत करें",
+    ctaTryVoice: "आवाज़ से खोज",
+    demoLabel: "प्रदर्शन",
+    demoTitle: "उच्चारण से खोज",
+    demoHint: "एक पूर्ण पंक्ति स्पष्ट उच्चारित कर रिकॉर्ड करें; पंक्ति समाप्त होने पर रुकें।",
+    statusTranscribing: "उच्चारण सावधानी से लिखा जा रहा है…",
+    statusSearching: "बानी के भंडार में खोज…",
+    statusIdle: "सुनें दबाएँ, एक पंक्ति स्पष्ट पढ़ें, फिर खोज हेतु रोकें दबाएँ।",
+    statusDone: "निकटतम पंक्तियाँ नीचे दिखाई गई हैं।",
     transcriptLabel: "लिप्यंतरण",
-    noResults: "कोई मेल खाती पंक्ति नहीं मिली।",
+    noResults: "इस रिकॉर्डिंग हेतु कोई मेल खाती पंक्ति नहीं मिली।",
     steps: [
       {
-        title: "गुरुद्वारा खाता बनाएँ",
-        copy: "हर गुरुद्वारा मंच, प्रोजेक्टर और सेवा दल के लिए अपनी लाइव खोज तैयार रख सकता है।"
+        title: "गुरुद्वारा पंजीकृत करें",
+        copy: "खाता बनाएँ ताकि सेवा दल दरबार, प्रक्षेपण और कार्यक्रमों हेतु लाइव खोज तैयार रख सके।"
       },
       {
         title: "कीर्तन या पाठ के दौरान सुनें",
-        copy: "ब्राउज़र माइक्रोफ़ोन से एक छोटा सम्मानजनक अंश लेकर खोज के लिए तैयार करता है।"
+        copy: "ब्राउज़र माइक्रोफ़ोन से संक्षिप्त, सम्मानजनक अंश लेकर मौन और एकाग्रता से खोज हेतु तैयार करता है।"
       },
       {
-        title: "सही पंक्ति दिखाएँ",
-        copy: "निकटतम पंक्तियाँ गुरमुखी, लिप्यंतरण, अर्थ, अंग और राग के साथ दिखाई देती हैं।"
+        title: "पंक्ति आदब से दिखाएँ",
+        copy: "निकटतम पंक्तियाँ गुरमुखी, रोमन, अर्थ, अंग और राग सहित—संगत सम्मानपूर्वक पढ़ सके।"
       }
     ],
-    accountKicker: "गुरुद्वारों के लिए",
-    accountTitle: "हर गुरुघर के लिए शांत नियंत्रण स्थान।",
+    accountKicker: "गुरघर हेतु",
+    accountTitle: "संगत के पीछे सेवा हेतु शांत स्थान।",
     accountBody:
-      "सेवा दल के लिए गुरुद्वारा खाता बनाएँ, लाइव ब्राउज़र स्क्रीन खोलें, और कीर्तन, कथा, पाठ या युवा कार्यक्रमों के दौरान आवाज़ खोज का उपयोग करें। इंटरफ़ेस जानबूझकर सरल रखा गया है ताकि कोई भी सेवादार बिना तकनीकी प्रशिक्षण के इसे चला सके।",
+      "अपने गुरुद्वारे हेतु पंजीकरण करें, ब्राउज़र में लाइव स्क्रीन खोलें, और कीर्तन, कथा, पाठ या युवा कार्यक्रमों के दौरान आवाज़ खोज का उपयोग करें। अभिकल्प सादा और विचारपूर्वक है, ताकि सेवादार तकनीकी विस्तार से विचलित न हों।",
     features: [
       {
-        title: "लाइव दीवान मोड",
-        copy: "प्रोजेक्टर या मंच के लिए बड़े, पढ़ने योग्य परिणाम।"
+        title: "लाइव दीवान प्रस्तुति",
+        copy: "प्रोजेक्टर और मंच हेतु बड़े, स्पष्ट परिणाम।"
       },
       {
-        title: "सेवादार अनुकूल",
-        copy: "एक स्पष्ट क्रम: सुनें, खोजें, निकटतम पंक्ति दिखाएँ।"
+        title: "सेवादार-केंद्रित कार्यप्रवाह",
+        copy: "एक बार सुनें, खोजें, निकटतम पंक्ति दिखाएँ—स्पष्ट लय में।"
       },
       {
-        title: "पवित्र प्रस्तुति",
-        copy: "पहले गुरमुखी, नीचे लिप्यंतरण और अंग्रेज़ी अर्थ।"
+        title: "सम्मानजनक अभिन्यास",
+        copy: "पहले गुरमुखी, नीचे रोमन और अंग्रेज़ी अर्थ।"
       },
       {
-        title: "संगत के लिए भरोसेमंद",
-        copy: "जब कई हृदय एक साथ सुन रहे हों, तब भी शांत और तत्पर रहने के लिए बनाया गया है।"
+        title: "संगत में विश्वास",
+        copy: "जब कई हृदय एक सभा में एकत्र हों, तब भी शांत और विश्वसनीय।"
       }
     ],
-    verseResult: (rank) => `परिणाम ${rank}`,
-    verseScore: (percent) => `${percent}% मिलान`,
-    verseScoreUnknown: "मिलान",
+    verseResult: (rank) => `पंक्ति ${rank}`,
+    verseScore: (percent) => `${percent}% अनुरूपता`,
+    verseScoreUnknown: "अनुरूपता",
     voice: {
       listen: "सुनें",
       stop: "रोकें",
-      hintIdle: "एक स्पष्ट गुरबाणी पंक्ति ४५ सेकंड तक रिकॉर्ड करने के लिए टैप करें।",
-      hintRecording: "सम्मानपूर्वक सुन रहे हैं...",
-      micBlocked: "माइक्रोफ़ोन की अनुमति नहीं मिली या उपलब्ध नहीं है।",
-      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।",
-      timeout: "लाइव खोज के लिए ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
+      hintIdle: "एक गुरबाणी पंक्ति ४५ सेकंड तक रिकॉर्ड करने हेतु दबाएँ।",
+      hintRecording: "मौन में सुन रहे हैं…",
+      micBlocked: "माइक्रोफ़ोन तक पहुँच नहीं हो सकी। कृपया ब्राउज़र अनुमतियाँ जाँचें।",
+      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग उपलब्ध नहीं है।",
+      timeout: "लाइव खोज हेतु ४५ सेकंड बाद रिकॉर्डिंग समाप्त होती है।",
       ariaListening: "सुन रहे हैं"
     },
     listening: {
-      title: "लाइव नमूना",
-      subtitle: "पूर्ण सुनने वाली स्क्रीन",
+      title: "प्रदर्शन",
+      subtitle: "पूर्ण श्रवण दृश्य",
       close: "बंद करें",
-      openButton: "लाइव प्रगति के साथ पूर्ण स्क्रीन खोलें",
-      startRecording: "रिकॉर्ड शुरू",
+      openButton: "पूर्ण स्क्रीन खोलें (तरंग और घड़ी)",
+      startRecording: "रिकॉर्ड प्रारंभ",
       stopRecording: "रोकें",
       progressLabel:
-        "तरंग, घड़ी और नीचे की पट्टी लाइव अपडेट होती हैं। एक स्पष्ट गुरबाणी पंक्ति बोलें; ४५ सेकंड पर रिकॉर्डिंग रुक जाएगी।",
-      micWaiting: "आपकी आवाज़ की प्रतीक्षा...",
-      micReceiving: "माइक्रोफ़ोन आवाज़ ले रहा है",
-      limitInfo: "रिकॉर्डिंग खिड़की",
-      limitReached: "लाइव खोज के लिए ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
-      tooShort: "अंश बहुत छोटा था। थोड़ा लंबा और स्पष्ट फिर से प्रयास करें।",
-      micBlocked: "माइक्रोफ़ोन की अनुमति नहीं मिली या उपलब्ध नहीं है।",
-      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।"
+        "तरंग, घड़ी और सूचक वास्तविक समय में अद्यतन होते हैं। एक स्पष्ट गुरबाणी पंक्ति बोलें; ४५ सेकंड पर रिकॉर्डिंग रुक जाएगी।",
+      micWaiting: "उच्चारण की प्रतीक्षा…",
+      micReceiving: "माइक्रोफ़ोन सक्रिय है",
+      limitInfo: "रिकॉर्डिंग सीमा",
+      limitReached: "विश्वसनीय लाइव खोज हेतु ४५ सेकंड बाद रिकॉर्डिंग रुक गई।",
+      tooShort: "अंश अत्यधिक संक्षिप्त था। कृपया थोड़ा लंबा और स्पष्ट पुनः प्रयास करें।",
+      micBlocked: "माइक्रोफ़ोन तक पहुँच नहीं हो सकी। कृपया ब्राउज़र अनुमतियाँ जाँचें।",
+      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग उपलब्ध नहीं है।"
     },
     streaming: {
-      title: "लाइव स्ट्रीमिंग",
-      subtitle: "उच्चारण के साथ पंक्तियाँ",
+      title: "लाइव सत्र",
+      subtitle: "उच्चारण के अनुरूप पंक्तियाँ",
       close: "बंद करें",
-      openButton: "लाइव स्ट्रीमिंग खोलें (पढ़ते रहें, पंक्तियाँ आती रहेंगी)",
-      startButton: "लाइव सत्र शुरू",
-      stopButton: "सत्र रोकें",
+      openButton: "लाइव सत्र खोलें (पढ़ते रहें, पंक्तियाँ आती रहेंगी)",
+      startButton: "सत्र प्रारंभ",
+      stopButton: "सत्र समाप्त",
       liveTranscriptHeading: "नवीनतम लिप्यंतरण",
       emptyTimeline:
-        "पहचानी गई गुरबाणी यहाँ दिखेगी। स्पष्ट पढ़ते रहें; पहली पंक्ति कुछ सेकंड में आएगी, फिर हर १० सेकंड में खोज होती रहेगी।",
+        "पहचानी गई गुरबाणी यहाँ पंक्ति दर पंक्ति दिखेगी। स्पष्ट पढ़ते रहें; पहली पंक्ति कुछ सेकंड में आ सकती है, खोज नियत अंतराल पर चलती रहेगी।",
       workingTranscribe: "लिखा जा रहा है…",
-      workingSearch: "पंक्तियाँ ढूँढी जा रही हैं…",
-      matchLabel: "मिलान वाली पंक्ति",
-      gurmukhiHeading: "पंजाबी (गुरमुखी)",
+      workingSearch: "पंक्तियाँ खोजी जा रही हैं…",
+      matchLabel: "संबद्ध पंक्ति",
+      gurmukhiHeading: "गुरबाणी (गुरमुखी)",
       translationHeading: "अंग्रेज़ी अर्थ",
-      micBlocked: "माइक्रोफ़ोन की अनुमति नहीं मिली या उपलब्ध नहीं है।",
-      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग समर्थित नहीं है।",
+      micBlocked: "माइक्रोफ़ोन तक पहुँच नहीं हो सकी। कृपया ब्राउज़र अनुमतियाँ जाँचें।",
+      browserNoMic: "इस ब्राउज़र में माइक्रोफ़ोन रिकॉर्डिंग उपलब्ध नहीं है।",
       sessionHint:
-        "सत्र खुला रहता है। पहली पंक्ति कुछ सेकंड में दिखेगी, फिर हर १० सेकंड में फिर से सुनकर खोज होती है। नीचे की ओर हों तो सूची स्वतः स्क्रॉल होती है।"
+        "सत्र खुला रहता है। पहली पंक्ति शीघ्र दिख सकती है; पश्चात् तंत्र नियत अंतराल पर सुनता और खोजता है। जब आप सूची के निकट हों, दृश्य धीरे से अनुसरण करता है।"
     }
   }
 };

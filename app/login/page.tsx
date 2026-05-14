@@ -66,21 +66,21 @@ function LoginForm() {
     <div className="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-saffron backdrop-blur">
       <p className="font-gurmukhi text-xl font-semibold text-orange-950">ਸਾਈਨ ਇਨ</p>
       <h1 className="mt-2 text-2xl font-bold text-stone-900">Sign in</h1>
-      <p className="mt-2 text-sm text-stone-600">Gurudwara operator access to your dashboard.</p>
+      <p className="mt-2 text-sm text-stone-600">Gurudwara operator access to the dashboard.</p>
 
       {verified ? (
         <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-          Email confirmed. You can sign in below.
+          Your email is confirmed. You may sign in below.
         </p>
       ) : null}
       {verifyInvalid ? (
         <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-          That confirmation link is invalid or expired. Use resend below.
+          That confirmation link is no longer valid. You may request a new message below.
         </p>
       ) : null}
       {sessionExpired ? (
         <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-          Your session expired. Please sign in again.
+          Your session has ended. Please sign in again.
         </p>
       ) : null}
 
@@ -124,7 +124,7 @@ function LoginForm() {
           onClick={() => void resendVerification()}
           className="font-semibold text-orange-800 underline-offset-2 hover:underline"
         >
-          Resend verification email
+          Resend confirmation email
         </button>
         <Link href="/forgot-password" className="font-semibold text-stone-600 hover:text-orange-800">
           Forgot password?

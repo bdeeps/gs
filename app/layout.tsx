@@ -12,7 +12,7 @@ const notoSansGurmukhi = Noto_Sans_Gurmukhi({
 export const metadata: Metadata = {
   title: "Gurbani Voice Searcher | ਗੁਰਬਾਣੀ ਖੋਜ",
   description:
-    "A reverent Punjabi voice search experience for finding Gurbani verses with Gurmukhi, transliteration, and translation."
+    "A measured voice-search aid for Gurudwaras: Gurbani with Gurmukhi, transliteration, and meaning—in humble support of sangat and seva."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

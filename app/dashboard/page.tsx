@@ -72,7 +72,8 @@ export default function DashboardPage() {
 
         {!user.verified ? (
           <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            Your email is not verified yet. Check your inbox for the confirmation link, or use resend on the{" "}
+            This email is not yet confirmed. Please check your inbox for the confirmation message, or use “Resend
+            confirmation email” on the{" "}
             <Link href="/login" className="font-bold underline">
               sign-in
             </Link>{" "}
@@ -80,11 +81,11 @@ export default function DashboardPage() {
           </div>
         ) : (
           <p className="text-sm text-blue-100">
-            Your account is active. Use{" "}
+            Your account is active. Open{" "}
             <Link href="/live" className="font-bold text-white underline">
               live search
             </Link>{" "}
-            from the home page during diwan.
+            from the home page when serving during diwan.
           </p>
         )}
 

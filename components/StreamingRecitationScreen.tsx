@@ -46,9 +46,19 @@ type StreamingRecitationScreenProps = {
 };
 
 const INSTRUCTIONS = [
-  { lang: "en", text: "Press Start, recite clearly. Verses appear every 10 seconds. Scroll follows automatically." },
-  { lang: "pa", text: "ਸ਼ੁਰੂ ਦਬਾਓ, ਸਾਫ਼ ਪੜ੍ਹੋ। ਹਰ ੧੦ ਸਕਿੰਟ ਬਾਅਦ ਪੰਕਤੀ ਆਵੇਗੀ। ਸੂਚੀ ਆਪੇ ਸਕ੍ਰੋਲ ਹੁੰਦੀ ਹੈ।", className: "font-gurmukhi" },
-  { lang: "hi", text: "शुरू दबाएँ, स्पष्ट पढ़ें। हर 10 सेकंड में पंक्ति दिखेगी। सूची स्वतः स्क्रॉल होती है।" },
+  {
+    lang: "en",
+    text: "Begin the session, then recite each line with clarity. Verses may appear at measured intervals; the view follows gently when you remain near the foot of the list."
+  },
+  {
+    lang: "pa",
+    text: "ਸੈਸ਼ਨ ਸ਼ੁਰੂ ਕਰੋ, ਫਿਰ ਹਰ ਪੰਕਤੀ ਸਾਫ਼ ਪੜ੍ਹੋ। ਪੰਕਤੀਆਂ ਨਿਯਤ ਅੰਤਰਾਲਾਂ ਤੇ ਆ ਸਕਦੀਆਂ ਹਨ; ਜਦੋਂ ਤੁਸੀਂ ਸੂਚੀ ਦੇ ਨੇੜੇ ਹੋਵੋ ਤਾਂ ਦ੍ਰਿਸ਼ ਹੌਲੀ ਨਾਲ ਅਨੁਸਰਣ ਕਰਦਾ ਹੈ।",
+    className: "font-gurmukhi"
+  },
+  {
+    lang: "hi",
+    text: "सत्र प्रारंभ करें, फिर प्रत्येक पंक्ति स्पष्ट पढ़ें। पंक्तियाँ नियत अंतराल पर आ सकती हैं; जब आप सूची के निकट हों तो दृश्य धीरे से अनुसरण करता है।"
+  }
 ];
 
 export function StreamingRecitationScreen({
