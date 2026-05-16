@@ -100,10 +100,20 @@ async function prepareDatabase() {
   }
 }
 
+function requireEmbeddingConfig() {
+  if (process.env.EMBEDDING_SERVICE_URL?.trim()) {
+    console.log(`Using self-hosted embeddings at ${process.env.EMBEDDING_SERVICE_URL.trim()}`);
+    return;
+  }
+
+  requireEnv("HF_API_KEY");
+  console.log("Using Hugging Face Inference Providers for embeddings (HF_API_KEY).");
+}
+
 async function main() {
   requireEnv("DATABASE_URL");
   requireEnv("OPENAI_API_KEY");
-  requireEnv("HF_API_KEY");
+  requireEmbeddingConfig();
 
   await prepareDatabase();
   console.log("Starting Gurbani Voice Searcher web service...");

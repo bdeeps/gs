@@ -1,0 +1,17 @@
+# Local dev: self-hosted E5 embeddings (no Hugging Face billing).
+# Start: docker compose up -d embedding
+# Then set EMBEDDING_SERVICE_URL=http://localhost:8100 in .env.local
+
+services:
+  embedding:
+    build: ./embedding-service
+    ports:
+      - "8100:8100"
+    environment:
+      EMBEDDING_MODEL: intfloat/multilingual-e5-large
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s

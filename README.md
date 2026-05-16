@@ -10,29 +10,39 @@ A Next.js web app that records Punjabi Gurbani audio, transcribes it with OpenAI
    npm install
    ```
 
-2. Create `.env.local` from `.env.example` and fill in:
+2. Start the **self-hosted embedding service** (same `multilingual-e5-large` model as production; **no re-seeding** of existing vectors):
+
+   ```bash
+   docker compose up -d embedding
+   ```
+
+   First start downloads the model (~1–2 GB) and can take a few minutes.
+
+3. Create `.env.local` from `.env.example` and fill in:
 
    ```bash
    DATABASE_URL=postgresql://...
    OPENAI_API_KEY=sk-...
-   HF_API_KEY=hf-...
+   EMBEDDING_SERVICE_URL=http://localhost:8100
    ```
 
-   **Hugging Face token:** create one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). For the new Inference Providers API, use a **fine-grained** token with **Make calls to Inference Providers** (see [Inference Providers quick tour](https://huggingface.co/docs/api-inference/en/quicktour)). A classic read token may not work for embeddings.
+   `HF_API_KEY` is **optional** when `EMBEDDING_SERVICE_URL` is set. Live search and seeding both use the local service, which produces the same E5 `query:` / `passage:` vectors already stored in Postgres.
 
-3. Enable the database schema:
+   **Hugging Face fallback only:** if you omit `EMBEDDING_SERVICE_URL`, set `HF_API_KEY` from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (fine-grained token with **Make calls to Inference Providers**).
+
+4. Enable the database schema:
 
    ```bash
    npm run db:schema
    ```
 
-4. Seed Gurbani verses from ShabadOS SQLite or JSON data:
+5. Seed Gurbani verses from ShabadOS SQLite or JSON data:
 
    ```bash
    SHABADOS_SQLITE_PATH=./data/shabados.sqlite npm run db:seed
    ```
 
-5. Start the app:
+6. Start the app:
 
    ```bash
    npm run dev
@@ -50,7 +60,7 @@ The app includes safeguards for Gurudwara live use:
 - Microphone recordings stop automatically at 45 seconds.
 - Audio uploads are capped at 12 MB.
 - Search text is limited to one short Gurbani line.
-- Whisper and HuggingFace calls use timeouts.
+- Whisper and embedding calls use timeouts.
 - Embedding requests retry on rate limits and temporary provider failures.
 - Public API responses avoid leaking provider/API-key details.
 - PostgreSQL pool size and query timeouts are bounded for Railway.
@@ -72,24 +82,33 @@ This app is ready for Railway with `railway.toml`.
 
 ### Railway Services
 
-Create two Railway services:
+Create three Railway services:
 
-- **Web service**: this Next.js app.
+- **Web service**: this Next.js app (`railway.toml` at repo root).
+- **Embedding service**: `embedding-service/Dockerfile` (self-hosted E5; avoids HF 402 / billing).
 - **PostgreSQL service**: must support the `pgvector` extension. If Railway's managed Postgres image does not expose `pgvector`, use a Postgres image that includes it, such as `pgvector/pgvector:pg16`, or another Railway template with pgvector enabled.
+
+Deploy the embedding service from the `embedding-service` directory (Dockerfile). After deploy, set the web service variable:
+
+```bash
+EMBEDDING_SERVICE_URL=https://your-embedding-service.up.railway.app
+```
 
 ### Required Variables
 
-Set these variables on the web service:
+Set these variables on the **web** service:
 
 ```bash
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 OPENAI_API_KEY=sk-your-openai-key
-HF_API_KEY=hf-your-huggingface-key
+EMBEDDING_SERVICE_URL=${{Embedding.RAILWAY_PUBLIC_DOMAIN}}
 EMBEDDING_MODEL=intfloat/multilingual-e5-large
 PG_POOL_MAX=5
 ```
 
-Embeddings call `https://router.huggingface.co/hf-inference/models/<EMBEDDING_MODEL>/pipeline/feature-extraction` (the legacy `api-inference.huggingface.co` URL returns **404**). Override the base with `HF_INFERENCE_BASE_URL` if Hugging Face changes routing again.
+`HF_API_KEY` is not required when `EMBEDDING_SERVICE_URL` is set. Existing verse embeddings stay valid — no re-seed.
+
+**Hugging Face fallback** (optional): omit `EMBEDDING_SERVICE_URL` and set `HF_API_KEY`. Embeddings call `https://router.huggingface.co/hf-inference/models/<EMBEDDING_MODEL>/pipeline/feature-extraction`. Override the base with `HF_INFERENCE_BASE_URL` if Hugging Face changes routing again.
 
 You can omit `SHABADOS_DOWNLOAD_URL` to use the default official stable ShabadOS SQLite release:
 
@@ -116,7 +135,7 @@ npm run start
 
 On startup, the app automatically:
 
-- Validates `DATABASE_URL`, `OPENAI_API_KEY`, and `HF_API_KEY`.
+- Validates `DATABASE_URL`, `OPENAI_API_KEY`, and either `EMBEDDING_SERVICE_URL` or `HF_API_KEY`.
 - Runs the PostgreSQL schema from `scripts/schema.sql`.
 - Creates `CREATE EXTENSION IF NOT EXISTS vector`.
 - Creates the `verses` table and HNSW vector index.
