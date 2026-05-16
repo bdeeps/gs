@@ -3,11 +3,15 @@ FROM node:20-bookworm-slim
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip build-essential curl \
+  && apt-get install -y --no-install-recommends python3 python3-pip python3-venv build-essential curl \
   && rm -rf /var/lib/apt/lists/*
 
+# Debian Bookworm blocks system-wide pip (PEP 668); use a venv for embedding deps.
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY embedding-service/requirements.txt ./embedding-service/
-RUN pip3 install --no-cache-dir -r embedding-service/requirements.txt
+RUN pip install --no-cache-dir -r embedding-service/requirements.txt
 
 COPY package.json package-lock.json ./
 RUN npm ci
