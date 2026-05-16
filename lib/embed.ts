@@ -2,6 +2,7 @@ import {
   EMBEDDING_TIMEOUT_MS,
   EXPECTED_EMBEDDING_DIMENSIONS
 } from "./config";
+import { getEmbeddingServiceUrl } from "./embedding-url";
 import { fetchWithTimeout, isAbortError } from "./http";
 
 const DEFAULT_MODEL = "intfloat/multilingual-e5-large";
@@ -10,10 +11,6 @@ type HuggingFaceEmbedding = number[] | number[][] | number[][][];
 
 function getEmbeddingModel() {
   return process.env.EMBEDDING_MODEL || DEFAULT_MODEL;
-}
-
-function getEmbeddingServiceUrl() {
-  return process.env.EMBEDDING_SERVICE_URL?.replace(/\/+$/, "");
 }
 
 function useLocalEmbeddingService() {
@@ -150,6 +147,14 @@ async function embedViaLocalService(input: string, prefix: "query" | "passage") 
   );
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(
+        `Embedding service returned 404 at ${base}/embed. ` +
+          "Check EMBEDDING_SERVICE_URL points at the Python embedding service (not the Next.js app). " +
+          "On Railway, use the all-in-one Dockerfile or set START_EMBEDDING_SIDECAR=1 and remove a wrong URL."
+      );
+    }
+
     throw new Error(`Embedding service rejected the request with ${response.status}.`);
   }
 

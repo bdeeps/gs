@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node scripts/startup.mjs",
+    "start": "bash scripts/start-with-embedding.sh",
     "start:web": "next start",
     "lint": "eslint .",
     "db:schema": "node scripts/apply-schema.mjs",

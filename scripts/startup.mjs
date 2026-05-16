@@ -100,9 +100,68 @@ async function prepareDatabase() {
   }
 }
 
+function normalizeEmbeddingServiceUrl(raw) {
+  const value = raw?.trim();
+  if (!value) {
+    return null;
+  }
+
+  if (value === "internal" || value === "sidecar") {
+    const port = process.env.EMBED_PORT || "8100";
+    return `http://127.0.0.1:${port}`;
+  }
+
+  let url = value;
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+
+  return url.replace(/\/+$/, "");
+}
+
+async function verifyEmbeddingService() {
+  const base = normalizeEmbeddingServiceUrl(process.env.EMBEDDING_SERVICE_URL);
+  if (!base) {
+    return;
+  }
+
+  const healthUrl = `${base}/health`;
+  console.log(`Checking embedding service at ${healthUrl}...`);
+
+  let response;
+  try {
+    response = await fetch(healthUrl, { signal: AbortSignal.timeout(15_000) });
+  } catch (error) {
+    throw new Error(
+      `Cannot reach embedding service at ${healthUrl}. ` +
+        `If you only deployed the Next.js app, redeploy with the repo Dockerfile or set START_EMBEDDING_SIDECAR=1. ` +
+        `Original error: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  if (response.status === 404) {
+    throw new Error(
+      `Embedding health check returned 404 at ${healthUrl}. ` +
+        "EMBEDDING_SERVICE_URL likely points at the web app, not the embedding service."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(`Embedding health check failed with status ${response.status} at ${healthUrl}.`);
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (payload.ok === false) {
+    throw new Error("Embedding service is up but the model is not loaded yet.");
+  }
+
+  console.log(`Embedding service OK (model: ${payload.model || "unknown"}).`);
+}
+
 function requireEmbeddingConfig() {
   if (process.env.EMBEDDING_SERVICE_URL?.trim()) {
-    console.log(`Using self-hosted embeddings at ${process.env.EMBEDDING_SERVICE_URL.trim()}`);
+    const base = normalizeEmbeddingServiceUrl(process.env.EMBEDDING_SERVICE_URL);
+    console.log(`Using self-hosted embeddings at ${base}`);
     return;
   }
 
@@ -114,6 +173,7 @@ async function main() {
   requireEnv("DATABASE_URL");
   requireEnv("OPENAI_API_KEY");
   requireEmbeddingConfig();
+  await verifyEmbeddingService();
 
   await prepareDatabase();
   console.log("Starting Gurbani Voice Searcher web service...");

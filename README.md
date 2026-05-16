@@ -82,33 +82,36 @@ This app is ready for Railway with `railway.toml`.
 
 ### Railway Services
 
-Create three Railway services:
+**Recommended (two services):**
 
-- **Web service**: this Next.js app (`railway.toml` at repo root).
-- **Embedding service**: `embedding-service/Dockerfile` (self-hosted E5; avoids HF 402 / billing).
-- **PostgreSQL service**: must support the `pgvector` extension. If Railway's managed Postgres image does not expose `pgvector`, use a Postgres image that includes it, such as `pgvector/pgvector:pg16`, or another Railway template with pgvector enabled.
+- **Web service**: this repo’s root `Dockerfile` — runs Next.js **and** the E5 embedding sidecar on `127.0.0.1:8100` (no separate embedding deploy, no `EMBEDDING_SERVICE_URL` needed).
+- **PostgreSQL** with `pgvector` (e.g. `pgvector/pgvector:pg16`).
 
-Deploy the embedding service from the `embedding-service` directory (Dockerfile). After deploy, set the web service variable:
+**Optional third service:** deploy `embedding-service/` separately only if you want embeddings on another container. Then on the web service:
 
 ```bash
+START_EMBEDDING_SIDECAR=0
 EMBEDDING_SERVICE_URL=https://your-embedding-service.up.railway.app
 ```
 
+Use a full URL with `https://`. Do **not** point `EMBEDDING_SERVICE_URL` at the Next.js app — that causes **404** on `/embed`.
+
 ### Required Variables
 
-Set these variables on the **web** service:
+On the **web** service:
 
 ```bash
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 OPENAI_API_KEY=sk-your-openai-key
-EMBEDDING_SERVICE_URL=${{Embedding.RAILWAY_PUBLIC_DOMAIN}}
 EMBEDDING_MODEL=intfloat/multilingual-e5-large
 PG_POOL_MAX=5
 ```
 
-`HF_API_KEY` is not required when `EMBEDDING_SERVICE_URL` is set. Existing verse embeddings stay valid — no re-seed.
+For the all-in-one Dockerfile, **omit** `EMBEDDING_SERVICE_URL` (or set `EMBEDDING_SERVICE_URL=sidecar`). Do not set it to the web app’s public domain.
 
-**Hugging Face fallback** (optional): omit `EMBEDDING_SERVICE_URL` and set `HF_API_KEY`. Embeddings call `https://router.huggingface.co/hf-inference/models/<EMBEDDING_MODEL>/pipeline/feature-extraction`. Override the base with `HF_INFERENCE_BASE_URL` if Hugging Face changes routing again.
+`HF_API_KEY` is not required when the embedding sidecar or `EMBEDDING_SERVICE_URL` is used. Existing verse embeddings stay valid — no re-seed.
+
+**Hugging Face fallback** (optional): unset `EMBEDDING_SERVICE_URL`, set `START_EMBEDDING_SIDECAR=0`, and set `HF_API_KEY`.
 
 You can omit `SHABADOS_DOWNLOAD_URL` to use the default official stable ShabadOS SQLite release:
 
