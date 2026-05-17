@@ -4,6 +4,7 @@ import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import {
   isAcceptableLiveMatch,
   isAcceptableGlobalMatch,
+  isAcceptableBootstrapMatch,
   LIVE_MIN_SCORE,
   searchVersesLive,
   searchVersesLiveAnchored
@@ -45,10 +46,21 @@ function pickBestGlobalResult(candidates: VerseSearchResult[]): VerseSearchResul
   return [acceptable[0]];
 }
 
+function pickBestBootstrapResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
+  const acceptable = candidates.filter(isAcceptableBootstrapMatch);
+  if (!acceptable.length) {
+    return [];
+  }
+  return [acceptable[0]];
+}
+
+type CandidatePicker = (candidates: VerseSearchResult[]) => VerseSearchResult[];
+
 async function globalSearch(
   segmentQuery: string,
   combinedQuery: string,
-  excludeVerseId: string | null
+  excludeVerseId: string | null,
+  picker: CandidatePicker = pickBestGlobalResult
 ): Promise<{ candidates: VerseSearchResult[]; mode: string }> {
   const exclude = (v: VerseSearchResult) => v.id !== excludeVerseId;
 
@@ -67,7 +79,7 @@ async function globalSearch(
       console.log("[live-global] segment top 3:", JSON.stringify(top3));
     }
     const filtered = seg.filter(exclude);
-    const picked = pickBestGlobalResult(filtered);
+    const picked = picker(filtered);
     if (picked.length) {
       console.log("[live-global] MATCHED via segment-only");
       return { candidates: picked, mode: "global-segment" };
@@ -92,7 +104,7 @@ async function globalSearch(
       console.log("[live-global] combined top 3:", JSON.stringify(top3));
     }
     const filtered = combined.filter(exclude);
-    const picked = pickBestGlobalResult(filtered);
+    const picked = picker(filtered);
     if (picked.length) {
       console.log("[live-global] MATCHED via combined");
       return { candidates: picked, mode: "global-combined" };
@@ -129,15 +141,16 @@ async function resolveLiveSearch(
     if (picked.length) {
       return { candidates: picked, mode: anchored.mode };
     }
-    console.log("[live] ang window empty — global re-locate fallback");
-    const fallback = await globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId);
+    console.log("[live] ang window empty — global re-locate fallback (strict)");
+    const fallback = await globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId, pickBestGlobalResult);
     if (fallback.candidates.length) {
       return { candidates: fallback.candidates, mode: `${anchored.mode}-${fallback.mode}` };
     }
     return { candidates: [], mode: anchored.mode };
   }
 
-  return globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId);
+  console.log("[live] bootstrap — no prior anchor, using lenient global search");
+  return globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId, pickBestBootstrapResult);
 }
 
 /**

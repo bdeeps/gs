@@ -451,8 +451,10 @@ const FETCH_VERSE_BY_ORDER_SQL = `
 `;
 
 export const LIVE_MIN_SCORE = 0.84;
-/** Stricter threshold for global search where any ang can match — require lexical or strong semantic. */
+/** Stricter threshold for global re-locate (already have an anchor, don't jump without strong evidence). */
 export const LIVE_GLOBAL_MIN_SCORE = 0.92;
+/** Softer threshold for bootstrap (no anchor yet, need to establish one quickly). */
+export const LIVE_BOOTSTRAP_MIN_SCORE = 0.85;
 export const LIVE_MIN_CONTAINMENT_CHARS = 4;
 /** Backward SGGS sequence span (order_id delta) kept on-screen for live cohort. */
 export const LIVE_ANG_ORDER_BACK_SPAN = 48;
@@ -541,6 +543,13 @@ export function isAcceptableGlobalMatch(verse: VerseSearchResult | undefined): b
   if (verse.sequentialAdvance) return false;
   if ((verse.lexicalTier ?? 0) >= 3) return true;
   return verse.score >= LIVE_GLOBAL_MIN_SCORE;
+}
+
+export function isAcceptableBootstrapMatch(verse: VerseSearchResult | undefined): boolean {
+  if (!verse) return false;
+  if (verse.sequentialAdvance) return false;
+  if ((verse.lexicalTier ?? 0) >= 3) return true;
+  return verse.score >= LIVE_BOOTSTRAP_MIN_SCORE;
 }
 
 const defaultSearchDeps: SearchVersesDeps = {
