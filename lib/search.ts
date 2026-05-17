@@ -306,6 +306,7 @@ type SearchVersesDeps = {
   fetchRowsFn: (inputs: SearchQueryInputs) => Promise<VerseRow[]>;
   fetchRowsNearOrderFn: (inputs: SearchNearOrderInputs) => Promise<VerseRow[]>;
   fetchRowsInAngCohortFn: (inputs: SearchAngCohortInputs) => Promise<VerseRow[]>;
+  countForwardVersesOnAngFn: (ang: number, afterOrderId: number) => Promise<number>;
   fetchVerseByOrderFn: (orderId: number) => Promise<VerseRow | null>;
 };
 
@@ -364,6 +365,14 @@ const SEARCH_VERSES_ANG_COHORT_SQL = `
   ORDER BY order_id ASC
 `;
 
+const COUNT_FORWARD_ON_ANG_SQL = `
+  SELECT COUNT(*)::int AS count
+  FROM verses
+  WHERE ang = $1::int
+    AND order_id IS NOT NULL
+    AND order_id > $2::int
+`;
+
 const FETCH_VERSE_BY_ORDER_SQL = `
   SELECT
     id,
@@ -388,7 +397,7 @@ export const LIVE_MIN_CONTAINMENT_CHARS = 4;
 
 function rowToVerseResult(
   row: VerseRow & { lexicalTier?: number; displayScore?: number },
-  extras?: { sequentialAdvance?: boolean }
+  extras?: { sequentialAdvance?: boolean; angAdvanced?: boolean }
 ): VerseSearchResult {
   return {
     id: row.id,
@@ -404,7 +413,8 @@ function rowToVerseResult(
     orderId: row.order_id,
     score: Number(row.displayScore ?? row.score),
     lexicalTier: row.lexicalTier,
-    sequentialAdvance: extras?.sequentialAdvance
+    sequentialAdvance: extras?.sequentialAdvance,
+    angAdvanced: extras?.angAdvanced
   };
 }
 
@@ -446,6 +456,13 @@ const defaultSearchDeps: SearchVersesDeps = {
       inputs.excludeVerseId
     ]);
     return rows;
+  },
+  async countForwardVersesOnAngFn(ang, afterOrderId) {
+    const { rows } = await getPool().query<{ count: number }>(COUNT_FORWARD_ON_ANG_SQL, [
+      ang,
+      afterOrderId
+    ]);
+    return rows[0]?.count ?? 0;
   },
   async fetchVerseByOrderFn(orderId) {
     const { rows } = await getPool().query<VerseRow>(FETCH_VERSE_BY_ORDER_SQL, [orderId]);
@@ -588,7 +605,7 @@ export async function searchVersesInAngCohort(
   if (!Number.isFinite(anchorAng) || anchorAng <= 0) {
     return [];
   }
-  if (!Number.isFinite(anchorOrderId) || anchorOrderId <= 0) {
+  if (!Number.isFinite(anchorOrderId) || anchorOrderId < 0) {
     return [];
   }
 
@@ -623,6 +640,65 @@ export async function searchVersesInAngCohort(
   return ranked.slice(0, safeLimit).map((row) =>
     rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
   );
+}
+
+export type LiveAnchoredSearchMode =
+  | "ang-cohort"
+  | "next-ang"
+  | "ang-unmatched"
+  | "ang-exhausted";
+
+/**
+ * Search within the current ang cohort; when that page has no forward verses left,
+ * automatically continue on the next ang(s) with full transcript matching.
+ */
+export async function searchVersesLiveAnchored(
+  query: string,
+  anchor: {
+    anchorAng: number;
+    anchorOrderId: number;
+    excludeVerseId?: string | null;
+    limit?: number;
+  },
+  deps: SearchVersesDeps = defaultSearchDeps
+): Promise<{ results: VerseSearchResult[]; mode: LiveAnchoredSearchMode }> {
+  const maxAngAdvance = 5;
+  let ang = Math.floor(anchor.anchorAng);
+  let orderId = Math.floor(anchor.anchorOrderId);
+  let excludeVerseId = anchor.excludeVerseId?.trim() || null;
+
+  if (!Number.isFinite(ang) || ang <= 0 || !Number.isFinite(orderId) || orderId < 0) {
+    return { results: [], mode: "ang-exhausted" };
+  }
+
+  for (let step = 0; step < maxAngAdvance; step++) {
+    const cohort = await searchVersesInAngCohort(query, {
+      anchorAng: ang,
+      anchorOrderId: orderId,
+      excludeVerseId,
+      limit: anchor.limit ?? 5
+    }, deps);
+
+    const pick = pickBestCohortMatch(cohort, orderId, excludeVerseId);
+    if (pick.length) {
+      const angAdvanced = step > 0;
+      return {
+        results: pick.map((verse) => ({ ...verse, angAdvanced })),
+        mode: angAdvanced ? "next-ang" : "ang-cohort"
+      };
+    }
+
+    const forwardRemaining = await deps.countForwardVersesOnAngFn(ang, orderId);
+    if (forwardRemaining > 0) {
+      return { results: [], mode: "ang-unmatched" };
+    }
+
+    ang += 1;
+    orderId = 0;
+    excludeVerseId = null;
+  }
+
+  return { results: [], mode: "ang-exhausted" };
 }
 
 export async function searchVersesNearOrder(

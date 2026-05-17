@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   pickBestCohortMatch,
-  searchVersesInAngCohort
+  searchVersesInAngCohort,
+  searchVersesLiveAnchored
 } from "../lib/search";
 
 test("ang cohort ranks next verse on same page with best lexical match", async () => {
@@ -23,6 +24,9 @@ test("ang cohort ranks next verse on same page with best lexical match", async (
       },
       async fetchRowsNearOrderFn() {
         return [];
+      },
+      async countForwardVersesOnAngFn() {
+        return 0;
       },
       async fetchRowsInAngCohortFn() {
         return [
@@ -106,4 +110,66 @@ test("pickBestCohortMatch skips anchor verse and requires forward order", () => 
   );
 
   assert.equal(picked[0]?.id, "line-101");
+});
+
+test("live anchored search advances to next ang when current ang has no forward verses", async () => {
+  let cohortCalls = 0;
+
+  const { results, mode } = await searchVersesLiveAnchored(
+    "nwm cVHdI klw",
+    {
+      anchorAng: 9,
+      anchorOrderId: 105,
+      excludeVerseId: "line-105",
+      limit: 1
+    },
+    {
+      async embedQueryFn() {
+        return [0.2, 0.3, 0.4];
+      },
+      async fetchRowsFn() {
+        return [];
+      },
+      async fetchRowsNearOrderFn() {
+        return [];
+      },
+      async countForwardVersesOnAngFn(ang, afterOrderId) {
+        if (ang === 9 && afterOrderId === 105) {
+          return 0;
+        }
+        return 1;
+      },
+      async fetchRowsInAngCohortFn(inputs) {
+        cohortCalls += 1;
+        if (inputs.anchorAng === 9) {
+          return [];
+        }
+        return [
+          {
+            id: "ang10-line-1",
+            source: "sggs",
+            shabad_id: "s2",
+            gurmukhi: "nwm cVHdI klw",
+            transliteration: "Nanak Naam Chardi Kala",
+            translation: "Through the Name, spirit rises.",
+            ang: 10,
+            raag: null,
+            author: null,
+            order_id: 201,
+            semantic_score: 0.88,
+            score: 0.88
+          }
+        ];
+      },
+      async fetchVerseByOrderFn() {
+        return null;
+      }
+    }
+  );
+
+  assert.equal(cohortCalls, 2);
+  assert.equal(mode, "next-ang");
+  assert.equal(results.length, 1);
+  assert.equal(results[0]?.ang, 10);
+  assert.equal(results[0]?.angAdvanced, true);
 });

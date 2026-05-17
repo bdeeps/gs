@@ -16,6 +16,7 @@ export type VerseSearchResult = Verse & {
   score: number;
   lexicalTier?: number;
   sequentialAdvance?: boolean;
+  angAdvanced?: boolean;
 };
 
 export type SearchResponse = {

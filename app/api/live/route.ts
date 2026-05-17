@@ -5,8 +5,8 @@ import {
   isAcceptableLiveMatch,
   LIVE_MIN_SCORE,
   pickBestCohortMatch,
-  searchVersesInAngCohort,
   searchVersesLive,
+  searchVersesLiveAnchored,
   searchVersesNearOrder
 } from "@/lib/search";
 import { transcribeAudioLive, TranscriptionError } from "@/lib/transcribe";
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       const canUseAngCohort =
         typeof lastMatchedOrderId === "number" &&
         Number.isInteger(lastMatchedOrderId) &&
-        lastMatchedOrderId > 0 &&
+        lastMatchedOrderId >= 0 &&
         typeof lastMatchedAng === "number" &&
         Number.isInteger(lastMatchedAng) &&
         lastMatchedAng > 0 &&
@@ -109,24 +109,17 @@ export async function POST(request: Request) {
         lastMatchedScore >= LIVE_MIN_SCORE;
 
       let candidates: VerseSearchResult[] = [];
-      let searchMode: "ang-cohort" | "order-cohort" | "global" = "global";
+      let searchMode = "global";
 
       if (canUseAngCohort) {
-        const cohort = await searchVersesInAngCohort(query, {
+        const anchored = await searchVersesLiveAnchored(query, {
           anchorAng: lastMatchedAng,
           anchorOrderId: lastMatchedOrderId,
           excludeVerseId: lastMatchedVerseId,
           limit: 5
         });
-        const cohortPick = pickBestCohortMatch(
-          cohort,
-          lastMatchedOrderId,
-          lastMatchedVerseId
-        );
-        if (cohortPick.length) {
-          candidates = cohortPick;
-          searchMode = "ang-cohort";
-        }
+        candidates = pickBestLiveResult(anchored.results);
+        searchMode = anchored.mode;
       } else if (
         typeof lastMatchedOrderId === "number" &&
         lastMatchedOrderId > 0 &&
@@ -145,12 +138,10 @@ export async function POST(request: Request) {
           lastMatchedVerseId
         );
         if (sequentialPick.length) {
-          candidates = sequentialPick;
+          candidates = pickBestLiveResult(sequentialPick);
           searchMode = "order-cohort";
         }
-      }
-
-      if (!candidates.length && !canUseAngCohort) {
+      } else {
         const global = await searchVersesLive(query, 3);
         candidates = pickBestLiveResult(global);
         searchMode = "global";
@@ -167,6 +158,8 @@ export async function POST(request: Request) {
         top?.lexicalTier ?? "n/a",
         "ang:",
         top?.ang ?? "n/a",
+        "angAdvanced:",
+        top?.angAdvanced ?? false,
         "verse:",
         top?.gurmukhi?.slice(0, 60) ?? "none"
       );
