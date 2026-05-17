@@ -66,27 +66,36 @@ const SEARCH_VERSES_SQL = `
     order_id,
     semantic_score,
     CASE
-      WHEN $2 IS NOT NULL AND gurmukhi_norm = $2 THEN 1.0
-      WHEN $3 IS NOT NULL AND transliteration_norm = $3 THEN 1.0
-      WHEN $3 IS NOT NULL AND translation_norm = $3 THEN 0.98
-      WHEN $4 IS NOT NULL AND gurmukhi_norm LIKE $4 ESCAPE '\\' THEN 0.97
-      WHEN $5 IS NOT NULL AND transliteration_norm LIKE $5 ESCAPE '\\' THEN 0.96
-      WHEN $5 IS NOT NULL AND translation_norm LIKE $5 ESCAPE '\\' THEN 0.94
+      WHEN $2::text IS NOT NULL AND gurmukhi_norm = $2::text THEN 1.0
+      WHEN $3::text IS NOT NULL AND transliteration_norm = $3::text THEN 1.0
+      WHEN $3::text IS NOT NULL AND translation_norm = $3::text THEN 0.98
+      WHEN $4::text IS NOT NULL AND (gurmukhi_norm LIKE $4::text ESCAPE '\\' OR position(gurmukhi_norm in $2::text) > 0) THEN 0.97
+      WHEN $5::text IS NOT NULL AND transliteration_norm <> '' AND (transliteration_norm LIKE $5::text ESCAPE '\\' OR position(transliteration_norm in $3::text) > 0) THEN 0.96
+      WHEN $5::text IS NOT NULL AND translation_norm <> '' AND (translation_norm LIKE $5::text ESCAPE '\\' OR position(translation_norm in $3::text) > 0) THEN 0.94
       ELSE semantic_score
     END AS score
   FROM ranked
   ORDER BY
     CASE
-      WHEN $2 IS NOT NULL AND gurmukhi_norm = $2 THEN 6
-      WHEN $3 IS NOT NULL AND transliteration_norm = $3 THEN 5
-      WHEN $3 IS NOT NULL AND translation_norm = $3 THEN 4
-      WHEN $4 IS NOT NULL AND gurmukhi_norm LIKE $4 ESCAPE '\\' THEN 3
-      WHEN $5 IS NOT NULL AND transliteration_norm LIKE $5 ESCAPE '\\' THEN 2
-      WHEN $5 IS NOT NULL AND translation_norm LIKE $5 ESCAPE '\\' THEN 1
+      WHEN $2::text IS NOT NULL AND gurmukhi_norm = $2::text THEN 6
+      WHEN $3::text IS NOT NULL AND transliteration_norm = $3::text THEN 5
+      WHEN $3::text IS NOT NULL AND translation_norm = $3::text THEN 4
+      WHEN $4::text IS NOT NULL AND (gurmukhi_norm LIKE $4::text ESCAPE '\\' OR position(gurmukhi_norm in $2::text) > 0) THEN 3
+      WHEN $5::text IS NOT NULL AND transliteration_norm <> '' AND (transliteration_norm LIKE $5::text ESCAPE '\\' OR position(transliteration_norm in $3::text) > 0) THEN 2
+      WHEN $5::text IS NOT NULL AND translation_norm <> '' AND (translation_norm LIKE $5::text ESCAPE '\\' OR position(translation_norm in $3::text) > 0) THEN 1
+      ELSE 0
+    END DESC,
+    CASE
+      WHEN $2::text IS NOT NULL AND gurmukhi_norm = $2::text THEN char_length(gurmukhi_norm)
+      WHEN $3::text IS NOT NULL AND transliteration_norm = $3::text THEN char_length(transliteration_norm)
+      WHEN $3::text IS NOT NULL AND translation_norm = $3::text THEN char_length(translation_norm)
+      WHEN $4::text IS NOT NULL AND (gurmukhi_norm LIKE $4::text ESCAPE '\\' OR position(gurmukhi_norm in $2::text) > 0) THEN char_length(gurmukhi_norm)
+      WHEN $5::text IS NOT NULL AND transliteration_norm <> '' AND (transliteration_norm LIKE $5::text ESCAPE '\\' OR position(transliteration_norm in $3::text) > 0) THEN char_length(transliteration_norm)
+      WHEN $5::text IS NOT NULL AND translation_norm <> '' AND (translation_norm LIKE $5::text ESCAPE '\\' OR position(translation_norm in $3::text) > 0) THEN char_length(translation_norm)
       ELSE 0
     END DESC,
     semantic_score DESC
-  LIMIT $6
+  LIMIT $6::int
 `;
 
 export function normalizeSearchText(value: string) {
@@ -120,13 +129,27 @@ function lexicalTierForRow(
   const gurmukhiNorm = normalizeSearchText(row.gurmukhi);
   const transliterationNorm = normalizeSearchText(row.transliteration ?? "");
   const translationNorm = normalizeSearchText(row.translation ?? "");
+  const containsEither = (left: string, right: string) =>
+    left.includes(right) || (right.length >= 8 && right.includes(left));
 
   if (normalizedAsciiQuery && gurmukhiNorm === normalizedAsciiQuery) return 6;
   if (normalizedCleanQuery && transliterationNorm === normalizedCleanQuery) return 5;
   if (normalizedCleanQuery && translationNorm === normalizedCleanQuery) return 4;
-  if (normalizedAsciiQuery && gurmukhiNorm.includes(normalizedAsciiQuery)) return 3;
-  if (normalizedCleanQuery && transliterationNorm.includes(normalizedCleanQuery)) return 2;
-  if (normalizedCleanQuery && translationNorm.includes(normalizedCleanQuery)) return 1;
+  if (normalizedAsciiQuery && containsEither(gurmukhiNorm, normalizedAsciiQuery)) return 3;
+  if (
+    normalizedCleanQuery &&
+    transliterationNorm &&
+    containsEither(transliterationNorm, normalizedCleanQuery)
+  ) {
+    return 2;
+  }
+  if (
+    normalizedCleanQuery &&
+    translationNorm &&
+    containsEither(translationNorm, normalizedCleanQuery)
+  ) {
+    return 1;
+  }
   return 0;
 }
 
@@ -148,6 +171,14 @@ function displayScoreForTier(tier: MatchTier, semanticScore: number) {
   }
 }
 
+function containmentSpan(fieldNorm: string, queryNorm: string | null) {
+  if (!queryNorm || !fieldNorm) return 0;
+  if (fieldNorm === queryNorm) return fieldNorm.length;
+  if (fieldNorm.includes(queryNorm)) return queryNorm.length;
+  if (queryNorm.length >= 8 && queryNorm.includes(fieldNorm)) return fieldNorm.length;
+  return 0;
+}
+
 type RankableCandidate = Pick<VerseRow, "gurmukhi" | "transliteration" | "translation" | "semantic_score">;
 
 export function rankVerseCandidates<T extends RankableCandidate>(
@@ -158,13 +189,36 @@ export function rankVerseCandidates<T extends RankableCandidate>(
   return [...candidates]
     .map((candidate) => {
       const tier = lexicalTierForRow(candidate, normalizedAsciiQuery, normalizedCleanQuery);
+      const gurmukhiSpan = containmentSpan(normalizeSearchText(candidate.gurmukhi), normalizedAsciiQuery);
+      const transliterationSpan = containmentSpan(
+        normalizeSearchText(candidate.transliteration ?? ""),
+        normalizedCleanQuery
+      );
+      const translationSpan = containmentSpan(
+        normalizeSearchText(candidate.translation ?? ""),
+        normalizedCleanQuery
+      );
+      const matchSpan =
+        tier === 6 || tier === 3
+          ? gurmukhiSpan
+          : tier === 5 || tier === 2
+            ? transliterationSpan
+            : tier === 4 || tier === 1
+              ? translationSpan
+              : 0;
       return {
         ...candidate,
         lexicalTier: tier,
+        matchSpan,
         displayScore: displayScoreForTier(tier, candidate.semantic_score)
       };
     })
-    .sort((a, b) => b.lexicalTier - a.lexicalTier || b.semantic_score - a.semantic_score);
+    .sort(
+      (a, b) =>
+        b.lexicalTier - a.lexicalTier ||
+        b.matchSpan - a.matchSpan ||
+        b.semantic_score - a.semantic_score
+    );
 }
 
 type SearchQueryInputs = {

@@ -100,3 +100,15 @@ test("with no lexical match, highest semantic score wins", () => {
   assert.equal(ranked[0].displayScore, 0.97);
 });
 
+test("query containing full verse still ranks that verse highest", () => {
+  const query = "ਪੂਰੀ ਪੰਕਤੀ ਸ਼ੁਰੂ ਨਾਨਕ ਨਾਮ ਚੜ੍ਹਦੀ ਕਲਾ ਅੰਤ";
+  const ranked = rankVerseCandidates(
+    VERSES,
+    normalizeSearchText(query),
+    normalizeSearchText(query)
+  );
+
+  assert.equal(ranked[0].id, "exact-gurmukhi");
+  assert.equal(ranked[0].displayScore, 0.97);
+});
+
