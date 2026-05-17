@@ -44,25 +44,53 @@ async function globalSearch(
   const exclude = (v: VerseSearchResult) => v.id !== excludeVerseId;
 
   if (segmentQuery) {
+    console.log("[live-global] segment-only search, query chars:", segmentQuery.length, "query:", segmentQuery.slice(0, 120));
     const seg = await searchVersesLive(segmentQuery, 5);
-    const picked = pickBestLiveResult(seg.filter(exclude));
+    console.log("[live-global] segment results:", seg.length);
+    if (seg.length > 0) {
+      const top3 = seg.slice(0, 3).map((v) => ({
+        id: v.id?.slice(0, 8),
+        score: v.score.toFixed(4),
+        tier: v.lexicalTier ?? 0,
+        ang: v.ang,
+        gur: v.gurmukhi?.slice(0, 50)
+      }));
+      console.log("[live-global] segment top 3:", JSON.stringify(top3));
+    }
+    const filtered = seg.filter(exclude);
+    const picked = pickBestLiveResult(filtered);
     if (picked.length) {
+      console.log("[live-global] MATCHED via segment-only");
       return { candidates: picked, mode: "global-segment" };
     }
-    const topSeg = seg[0];
-    if (topSeg) {
-      console.log("[live] global segment-only top score:", topSeg.score.toFixed(4), "tier:", topSeg.lexicalTier ?? 0);
+    if (seg.length > 0 && filtered.length < seg.length) {
+      console.log("[live-global] excluded", seg.length - filtered.length, "results matching lastMatchedVerseId");
     }
   }
 
   if (combinedQuery && combinedQuery !== segmentQuery) {
+    console.log("[live-global] combined search, query chars:", combinedQuery.length);
     const combined = await searchVersesLive(combinedQuery, 5);
-    const picked = pickBestLiveResult(combined.filter(exclude));
+    console.log("[live-global] combined results:", combined.length);
+    if (combined.length > 0) {
+      const top3 = combined.slice(0, 3).map((v) => ({
+        id: v.id?.slice(0, 8),
+        score: v.score.toFixed(4),
+        tier: v.lexicalTier ?? 0,
+        ang: v.ang,
+        gur: v.gurmukhi?.slice(0, 50)
+      }));
+      console.log("[live-global] combined top 3:", JSON.stringify(top3));
+    }
+    const filtered = combined.filter(exclude);
+    const picked = pickBestLiveResult(filtered);
     if (picked.length) {
+      console.log("[live-global] MATCHED via combined");
       return { candidates: picked, mode: "global-combined" };
     }
   }
 
+  console.log("[live-global] NO MATCH from either search path");
   return { candidates: [], mode: "global-empty" };
 }
 
@@ -145,6 +173,15 @@ export async function POST(request: Request) {
   const lastMatchedAng = parseOptionalNumber(formData.get("lastMatchedAng"));
   const lastMatchedVerseId = parseOptionalString(formData.get("lastMatchedVerseId"));
   const rollingTranscript = parseOptionalString(formData.get("rollingTranscript"));
+
+  console.log("[live] context:", JSON.stringify({
+    audioBytes: audio.size,
+    lastAng: lastMatchedAng,
+    lastOrder: lastMatchedOrderId,
+    lastScore: lastMatchedScore?.toFixed(4) ?? null,
+    lastVerse: lastMatchedVerseId?.slice(0, 8) ?? null,
+    rollingLen: rollingTranscript?.length ?? 0
+  }));
 
   try {
     const transcribeStartedAt = Date.now();

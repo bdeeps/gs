@@ -597,14 +597,27 @@ export async function searchVersesWithDeps(
   const wildcardAsciiQuery = toWildcardPattern(normalizedAsciiQuery);
   const wildcardCleanQuery = toWildcardPattern(normalizedCleanQuery);
 
-  if (asciiQuery !== cleanQuery && process.env.NODE_ENV !== "test") {
-    console.log("[search] converted query:", cleanQuery.slice(0, 80), "→", asciiQuery.slice(0, 80));
+  if (process.env.NODE_ENV !== "test") {
+    if (asciiQuery !== cleanQuery) {
+      console.log("[search] converted query:", cleanQuery.slice(0, 80), "→", asciiQuery.slice(0, 80));
+    }
+    console.log("[search] normalizedAscii:", (normalizedAsciiQuery ?? "NULL").slice(0, 100));
+    console.log("[search] normalizedClean:", (normalizedCleanQuery ?? "NULL").slice(0, 100));
+    console.log("[search] wildcardAscii:", (wildcardAsciiQuery ?? "NULL").slice(0, 100));
   }
 
+  const embedStart = Date.now();
   const embedding = await deps.embedQueryFn(asciiQuery);
+  const embedMs = Date.now() - embedStart;
   const semanticCandidateLimit = Math.max(safeLimit * 20, 120);
   const lexicalCandidateLimit = 240;
   const outputCandidateLimit = semanticCandidateLimit + lexicalCandidateLimit;
+
+  if (process.env.NODE_ENV !== "test") {
+    console.log("[search] embedding dims:", embedding.length, "embed ms:", embedMs);
+  }
+
+  const sqlStart = Date.now();
   const rows = await deps.fetchRowsFn({
     embedding,
     safeLimit,
@@ -616,6 +629,21 @@ export async function searchVersesWithDeps(
     lexicalCandidateLimit,
     outputCandidateLimit
   });
+  const sqlMs = Date.now() - sqlStart;
+
+  if (process.env.NODE_ENV !== "test") {
+    console.log("[search] SQL returned rows:", rows.length, "sql ms:", sqlMs);
+    if (rows.length > 0) {
+      const top3 = rows.slice(0, 3).map((r) => ({
+        id: r.id?.slice(0, 8),
+        score: Number(r.score).toFixed(4),
+        sem: Number(r.semantic_score).toFixed(4),
+        ang: r.ang,
+        gur: r.gurmukhi?.slice(0, 40)
+      }));
+      console.log("[search] top 3 raw rows:", JSON.stringify(top3));
+    }
+  }
 
   const rankedRows = rankVerseCandidates(
     rows,
@@ -623,6 +651,18 @@ export async function searchVersesWithDeps(
     normalizedCleanQuery,
     minContainmentChars
   ).slice(0, safeLimit);
+
+  if (process.env.NODE_ENV !== "test" && rankedRows.length > 0) {
+    const top3 = rankedRows.slice(0, 3).map((r) => ({
+      id: r.id?.slice(0, 8),
+      tier: r.lexicalTier,
+      span: r.matchSpan,
+      display: r.displayScore.toFixed(4),
+      sem: r.semantic_score.toFixed(4),
+      gur: r.gurmukhi?.slice(0, 40)
+    }));
+    console.log("[search] top 3 ranked:", JSON.stringify(top3));
+  }
 
   return rankedRows.map((row) =>
     rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
@@ -695,8 +735,21 @@ export function pickBestCohortMatch(
     )
     .sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0));
 
+  if (process.env.NODE_ENV !== "test") {
+    console.log(
+      "[pick-cohort] candidates:", candidates.length,
+      "forward:", forward.length,
+      "anchorOrder:", anchorOrderId,
+      "excludeVerse:", anchorVerseId?.slice(0, 8) ?? "none"
+    );
+  }
+
   const matched = forward.filter(isCohortAcceptableMatch);
   if (matched.length) {
+    if (process.env.NODE_ENV !== "test") {
+      const v = matched[0];
+      console.log("[pick-cohort] ACCEPT acceptable:", v.id?.slice(0, 8), "ord:", v.orderId, "tier:", v.lexicalTier, "score:", v.score.toFixed(4));
+    }
     return [matched[0]];
   }
 
@@ -706,12 +759,27 @@ export function pickBestCohortMatch(
       .filter((verse) => (verse.orderId ?? 0) <= anchorOrderId + LIVE_COHORT_NEAR_ORDER)
       .filter((verse) => liveCohortTokenOverlapAccepts(verse.gurmukhi, cleanQuery));
     if (overlapMatch.length) {
+      if (process.env.NODE_ENV !== "test") {
+        const v = overlapMatch[0];
+        console.log("[pick-cohort] ACCEPT overlap:", v.id?.slice(0, 8), "ord:", v.orderId, "overlap:", countGurmukhiTokenOverlap(v.gurmukhi, cleanQuery));
+      }
       return [boostLiveCohortVerse(overlapMatch[0])];
     }
   }
 
   const nextByOrder = forward[0];
   if (nextByOrder) {
+    if (process.env.NODE_ENV !== "test") {
+      const tokenOvl = cleanQuery ? countGurmukhiTokenOverlap(nextByOrder.gurmukhi, cleanQuery) : 0;
+      console.log(
+        "[pick-cohort] nextByOrder:", nextByOrder.id?.slice(0, 8),
+        "ord:", nextByOrder.orderId,
+        "score:", nextByOrder.score.toFixed(4),
+        "tier:", nextByOrder.lexicalTier,
+        "tokenOverlap:", tokenOvl,
+        "gur:", nextByOrder.gurmukhi?.slice(0, 50)
+      );
+    }
     if (nextByOrder.score >= LIVE_MIN_SCORE) {
       return [nextByOrder];
     }
@@ -721,10 +789,16 @@ export function pickBestCohortMatch(
       nextByOrder.score >= LIVE_COHORT_SEMANTIC_MIN &&
       countGurmukhiTokenOverlap(nextByOrder.gurmukhi, cleanQuery) >= 1
     ) {
+      if (process.env.NODE_ENV !== "test") {
+        console.log("[pick-cohort] ACCEPT semantic+overlap boost");
+      }
       return [boostLiveCohortVerse(nextByOrder)];
     }
   }
 
+  if (process.env.NODE_ENV !== "test") {
+    console.log("[pick-cohort] REJECT — no acceptable forward match");
+  }
   return [];
 }
 
@@ -759,6 +833,7 @@ export async function searchVersesInAngCohort(
   const embedding = await deps.embedQueryFn(asciiQuery);
   const excludeVerseId = input.excludeVerseId?.trim() || null;
 
+  const windowKind = anchorOrderId <= 0 ? "ang_head" : "order_window";
   const rows =
     anchorOrderId <= 0
       ? await deps.fetchRowsInAngLiveWindowFn({
@@ -778,6 +853,14 @@ export async function searchVersesInAngCohort(
           maxRows: LIVE_ANG_LIVE_FETCH_CAP
         });
 
+  if (process.env.NODE_ENV !== "test") {
+    console.log(
+      "[ang-cohort] kind:", windowKind, "ang:", anchorAng, "orderId:", anchorOrderId,
+      "rows:", rows.length, "exclude:", excludeVerseId?.slice(0, 8) ?? "none"
+    );
+    console.log("[ang-cohort] normAscii:", (normalizedAsciiQuery ?? "NULL").slice(0, 80));
+  }
+
   if (!rows.length) {
     return [];
   }
@@ -794,7 +877,24 @@ export async function searchVersesInAngCohort(
     rankProximityAnchor
   );
 
+  if (process.env.NODE_ENV !== "test" && ranked.length > 0) {
+    const top5 = ranked.slice(0, 5).map((r) => ({
+      id: r.id?.slice(0, 8),
+      tier: r.lexicalTier,
+      span: r.matchSpan,
+      display: r.displayScore.toFixed(4),
+      sem: r.semantic_score.toFixed(4),
+      ord: r.order_id,
+      gur: r.gurmukhi?.slice(0, 40)
+    }));
+    console.log("[ang-cohort] top 5 ranked:", JSON.stringify(top5));
+  }
+
   const lexicalPool = ranked.filter((row) => row.lexicalTier >= 1);
+  if (process.env.NODE_ENV !== "test") {
+    console.log("[ang-cohort] lexical pool size:", lexicalPool.length, "of", ranked.length, "total");
+  }
+
   if (!lexicalPool.length) {
     return ranked.slice(0, safeLimit).map((row) =>
       rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
@@ -834,6 +934,10 @@ export async function searchVersesLiveAnchored(
     return { results: [], mode: "ang-exhausted" };
   }
 
+  if (process.env.NODE_ENV !== "test") {
+    console.log("[anchored] start ang:", ang, "orderId:", orderId, "maxAdvance:", maxAngAdvance);
+  }
+
   for (let step = 0; step < maxAngAdvance; step++) {
     const cohort = await searchVersesInAngCohort(query, {
       anchorAng: ang,
@@ -845,6 +949,9 @@ export async function searchVersesLiveAnchored(
     const pick = pickBestCohortMatch(cohort, orderId, excludeVerseId, query);
     if (pick.length) {
       const angAdvanced = step > 0;
+      if (process.env.NODE_ENV !== "test") {
+        console.log("[anchored] MATCHED at step:", step, "ang:", ang, "mode:", angAdvanced ? "next-ang" : "ang-cohort");
+      }
       return {
         results: pick.map((verse) => ({ ...verse, angAdvanced })),
         mode: angAdvanced ? "next-ang" : "ang-cohort"
@@ -852,6 +959,9 @@ export async function searchVersesLiveAnchored(
     }
 
     const forwardRemaining = await deps.countForwardVersesOnAngFn(ang, orderId);
+    if (process.env.NODE_ENV !== "test") {
+      console.log("[anchored] step:", step, "ang:", ang, "orderId:", orderId, "forwardRemaining:", forwardRemaining);
+    }
     if (forwardRemaining > 0) {
       return { results: [], mode: "ang-cohort" };
     }
@@ -859,8 +969,14 @@ export async function searchVersesLiveAnchored(
     ang += 1;
     orderId = 0;
     excludeVerseId = null;
+    if (process.env.NODE_ENV !== "test") {
+      console.log("[anchored] advancing to ang:", ang);
+    }
   }
 
+  if (process.env.NODE_ENV !== "test") {
+    console.log("[anchored] exhausted after", maxAngAdvance, "steps");
+  }
   return { results: [], mode: "ang-exhausted" };
 }
 
