@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { incrementAppMetrics } from "@/lib/app-metrics";
 import { getAppSettings } from "@/lib/app-settings";
 import { MAX_QUERY_CHARS, trimForSearch } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
@@ -33,6 +34,9 @@ export async function POST(request: Request) {
   try {
     const results = await searchVerses(query, 5);
     const settings = await getAppSettings();
+    const translationRequestCount = settings.enableHindiTranslation
+      ? results.reduce((count, row) => count + (row.translation ? 1 : 0), 0)
+      : 0;
 
     const translated = settings.enableHindiTranslation
       ? await Promise.all(
@@ -41,6 +45,15 @@ export async function POST(request: Request) {
           )
         )
       : new Array(results.length).fill(null);
+    const translatedCount = translated.reduce((count, value) => count + (value ? 1 : 0), 0);
+
+    await incrementAppMetrics({
+      totalSearchRequests: 1,
+      totalVersesMatched: results.length,
+      totalTranslationsRequested: translationRequestCount,
+      totalTranslationsSucceeded: translatedCount
+    });
+
     const enriched: VerseSearchResult[] = results.map((r, i) => ({
       ...r,
       translationHi: translated[i],

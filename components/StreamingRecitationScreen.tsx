@@ -73,6 +73,7 @@ export function StreamingRecitationScreen({
   langClass = "",
   onClose
 }: StreamingRecitationScreenProps) {
+  const isSingleEnglishMode = liveDisplayMode === "single_english";
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -430,8 +431,8 @@ export function StreamingRecitationScreen({
         </div>
       </header>
 
-      {/* ── Transcript ticker ────────────────────────────────── */}
-      {recording || liveTranscript ? (
+      {/* ── Transcript ticker — hidden in single-verse mode (shown inside card) */}
+      {!isSingleEnglishMode && (recording || liveTranscript) ? (
         <div className="shrink-0 border-b border-orange-100/60 bg-amber-50/60 px-4 py-1.5 sm:px-5">
           <p className="truncate text-xs text-stone-600">
             <span className="mr-1.5 font-semibold text-orange-700">Heard:</span>
@@ -440,16 +441,21 @@ export function StreamingRecitationScreen({
         </div>
       ) : null}
 
-      {/* ── Main timeline ────────────────────────────────────── */}
-      <div ref={scrollViewportRef} onScroll={handleTimelineScroll}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {/* ── Main content area ────────────────────────────────── */}
+      <div
+        ref={scrollViewportRef}
+        onScroll={handleTimelineScroll}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
         {!timeline.length ? (
           <div className="flex h-full flex-col items-center justify-center gap-6 px-6 py-10">
             <div className="w-full max-w-lg space-y-3">
               {INSTRUCTIONS.map((inst) => (
-                <p key={inst.lang}
+                <p
+                  key={inst.lang}
                   className={`text-center text-sm leading-relaxed text-stone-500 ${"className" in inst ? inst.className : ""}`}
-                  lang={inst.lang}>
+                  lang={inst.lang}
+                >
                   {inst.text}
                 </p>
               ))}
@@ -462,13 +468,30 @@ export function StreamingRecitationScreen({
               <p className="text-center text-xs text-red-600">{streamError}</p>
             ) : null}
           </div>
+        ) : isSingleEnglishMode ? (
+          /* Single-verse hero: always exactly 1 entry, vertically + horizontally centered */
+          <div className="flex min-h-full items-center justify-center px-4 py-8">
+            <div className="w-full max-w-3xl">
+              {timeline.slice(-1).map((entry) => (
+                <div key={entry.key} ref={lastVerseRef}>
+                  <StreamingVerseBlock
+                    verse={entry.verse}
+                    variant="hero"
+                    heardTranscript={entry.heardTranscript}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
+          /* Timeline mode: scrolling list */
           <div className="mx-auto w-full max-w-3xl">
             {timeline.map((entry, i) => (
               <div key={entry.key} ref={i === timeline.length - 1 ? lastVerseRef : undefined}>
                 <StreamingVerseBlock
                   verse={entry.verse}
-                  englishOnly={liveDisplayMode === "single_english"}
+                  variant="timeline"
+                  heardTranscript={entry.heardTranscript}
                 />
               </div>
             ))}

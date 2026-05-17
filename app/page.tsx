@@ -14,12 +14,19 @@ import type { SearchResponse, VerseSearchResult } from "@/lib/types";
 
 type Status = "idle" | "transcribing" | "searching" | "done" | "error";
 
+type MeUser = {
+  id: string;
+  email: string;
+  name: string;
+};
+
 export default function Home() {
   const [lang, setLang] = useState<MarketingLang>("en");
   const [status, setStatus] = useState<Status>("idle");
   const [transcript, setTranscript] = useState("");
   const [results, setResults] = useState<VerseSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<MeUser | null>(null);
 
   async function handleRecording(audio: Blob) {
     setStatus("transcribing");
@@ -81,6 +88,26 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = (await res.json()) as { user: MeUser | null };
+        if (!cancelled) {
+          setUser(data.user ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setUser(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function selectLang(next: MarketingLang) {
     setLang(next);
     window.localStorage.setItem("gurbani-marketing-lang", next);
@@ -122,12 +149,16 @@ export default function Home() {
               </button>
             ))}
             <span className="hidden h-6 w-px bg-orange-200 sm:block" aria-hidden />
-            <Link href="/register" className="text-sm font-semibold text-blue-950 hover:underline">
-              {m.navForGurudwaras}
+            <Link href={user ? "/dashboard" : "/register"} className="text-sm font-semibold text-blue-950 hover:underline">
+              {user ? "Dashboard" : m.navForGurudwaras}
             </Link>
-            <Link href="/login" className="text-sm font-semibold text-stone-600 hover:text-orange-900">
-              Sign in
-            </Link>
+            {user ? (
+              <span className="text-sm font-semibold text-emerald-700">{user.name}</span>
+            ) : (
+              <Link href="/login" className="text-sm font-semibold text-stone-600 hover:text-orange-900">
+                Sign in
+              </Link>
+            )}
             <Link
               href="#search"
               className="rounded-lg bg-stone-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-900 sm:px-5"
@@ -176,10 +207,10 @@ export default function Home() {
 
             <div className="relative mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
               <Link
-                href="/register"
+              href={user ? "/dashboard" : "/register"}
                 className="inline-flex justify-center rounded-lg bg-blue-950 px-5 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-blue-900"
               >
-                {m.ctaCreateAccount}
+              {user ? "Open dashboard" : m.ctaCreateAccount}
               </Link>
               <a
                 href="#search"

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { incrementAppMetrics } from "@/lib/app-metrics";
 import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
 import { transcribeAudio, TranscriptionError } from "@/lib/transcribe";
@@ -67,9 +68,15 @@ export async function POST(request: Request) {
         results[0]?.gurmukhi?.slice(0, 60) ?? "none"
       );
 
+      await incrementAppMetrics({
+        totalLiveRequests: 1,
+        totalVersesMatched: results.length
+      });
+
       return NextResponse.json({ text, results });
     } catch (searchError) {
       console.error("[live] search failed after transcription:", searchError);
+      await incrementAppMetrics({ totalLiveRequests: 1 });
       // Keep session alive for tab audio/music even if embedding/search backend is flaky.
       return NextResponse.json({ text, results: [] as VerseSearchResult[] });
     }

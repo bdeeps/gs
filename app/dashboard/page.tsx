@@ -12,8 +12,17 @@ type MeUser = {
   verified: boolean;
 };
 
+type DashboardMetrics = {
+  totalSearchRequests: number;
+  totalLiveRequests: number;
+  totalVersesMatched: number;
+  totalTranslationsRequested: number;
+  totalTranslationsSucceeded: number;
+};
+
 export default function DashboardPage() {
   const [user, setUser] = useState<MeUser | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [enableHindiTranslation, setEnableHindiTranslation] = useState(false);
   const [liveDisplayMode, setLiveDisplayMode] = useState<LiveDisplayMode>("timeline");
   const [saving, setSaving] = useState(false);
@@ -25,9 +34,10 @@ export default function DashboardPage() {
     let cancelled = false;
     void (async () => {
       try {
-        const [meRes, settingsRes] = await Promise.all([
+        const [meRes, settingsRes, statsRes] = await Promise.all([
           fetch("/api/auth/me"),
-          fetch("/api/admin/config")
+          fetch("/api/admin/config"),
+          fetch("/api/admin/stats")
         ]);
         const data = (await meRes.json()) as { user: MeUser | null };
         const settings = (await settingsRes.json()) as {
@@ -36,8 +46,10 @@ export default function DashboardPage() {
             liveDisplayMode?: LiveDisplayMode;
           };
         };
+        const stats = (await statsRes.json()) as { metrics?: DashboardMetrics };
         if (!cancelled) {
           setUser(data.user ?? null);
+          setMetrics(stats.metrics ?? null);
           setEnableHindiTranslation(Boolean(settings.settings?.enableHindiTranslation));
           setLiveDisplayMode(
             settings.settings?.liveDisplayMode === "single_english" ? "single_english" : "timeline"
@@ -99,7 +111,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-saffron-page px-5 py-10 text-stone-950 sm:px-8">
-      <div className="mx-auto flex max-w-2xl flex-col gap-6 rounded-[2rem] border border-white/70 bg-blue-950 p-8 text-white shadow-saffron sm:p-10">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 rounded-[2rem] border border-white/70 bg-blue-950 p-8 text-white shadow-saffron sm:p-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Gurudwara dashboard</p>
@@ -116,6 +128,35 @@ export default function DashboardPage() {
           </Link>{" "}
           from the home page when serving during diwan.
         </p>
+
+        <div className="rounded-2xl border border-white/20 bg-white/5 p-5">
+          <h2 className="text-lg font-semibold text-amber-200">Usage dashboard</h2>
+          <p className="mt-1 text-sm text-blue-100/90">
+            Live counters for searches, matches, and translation activity.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-blue-200">Search requests</p>
+              <p className="mt-1 text-2xl font-semibold">{metrics?.totalSearchRequests ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-blue-200">Live requests</p>
+              <p className="mt-1 text-2xl font-semibold">{metrics?.totalLiveRequests ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-blue-200">Verses matched</p>
+              <p className="mt-1 text-2xl font-semibold">{metrics?.totalVersesMatched ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-blue-200">Translations requested</p>
+              <p className="mt-1 text-2xl font-semibold">{metrics?.totalTranslationsRequested ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-blue-200">Translations completed</p>
+              <p className="mt-1 text-2xl font-semibold">{metrics?.totalTranslationsSucceeded ?? 0}</p>
+            </div>
+          </div>
+        </div>
 
         <div className="rounded-2xl border border-white/20 bg-white/5 p-5">
           <h2 className="text-lg font-semibold text-amber-200">Admin display settings</h2>

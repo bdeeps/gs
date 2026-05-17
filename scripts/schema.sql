@@ -58,3 +58,18 @@ CREATE TABLE IF NOT EXISTS app_settings (
 INSERT INTO app_settings (id)
 VALUES (1)
 ON CONFLICT (id) DO NOTHING;
+
+/* Runtime dashboard counters (single row) */
+CREATE TABLE IF NOT EXISTS app_metrics (
+  id SMALLINT PRIMARY KEY CHECK (id = 1),
+  total_search_requests INTEGER NOT NULL DEFAULT 0,
+  total_live_requests INTEGER NOT NULL DEFAULT 0,
+  total_verses_matched INTEGER NOT NULL DEFAULT 0,
+  total_translations_requested INTEGER NOT NULL DEFAULT 0,
+  total_translations_succeeded INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO app_metrics (id)
+VALUES (1)
+ON CONFLICT (id) DO NOTHING;
