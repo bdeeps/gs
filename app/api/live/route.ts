@@ -46,12 +46,29 @@ function pickBestGlobalResult(candidates: VerseSearchResult[]): VerseSearchResul
   return [acceptable[0]];
 }
 
+const BOOTSTRAP_MIN_QUERY_CHARS = 15;
+const BOOTSTRAP_MIN_SCORE_GAP = 0.01;
+
 function pickBestBootstrapResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
   const acceptable = candidates.filter(isAcceptableBootstrapMatch);
   if (!acceptable.length) {
     return [];
   }
-  return [acceptable[0]];
+  const best = acceptable[0];
+
+  if ((best.lexicalTier ?? 0) >= 3) return [best];
+
+  const runnerUp = acceptable.find((v) => v.ang !== best.ang);
+  if (runnerUp && best.score - runnerUp.score < BOOTSTRAP_MIN_SCORE_GAP) {
+    console.log(
+      "[bootstrap] REJECT — no score separation:",
+      best.score.toFixed(4), "vs", runnerUp.score.toFixed(4),
+      "angs:", best.ang, "vs", runnerUp.ang
+    );
+    return [];
+  }
+
+  return [best];
 }
 
 type CandidatePicker = (candidates: VerseSearchResult[]) => VerseSearchResult[];
@@ -149,6 +166,11 @@ async function resolveLiveSearch(
     return { candidates: [], mode: anchored.mode };
   }
 
+  const bootstrapQuery = segmentQuery || combinedQuery;
+  if (bootstrapQuery.length < BOOTSTRAP_MIN_QUERY_CHARS) {
+    console.log("[live] bootstrap SKIP — query too short:", bootstrapQuery.length, "chars, need", BOOTSTRAP_MIN_QUERY_CHARS);
+    return { candidates: [], mode: "global-empty" };
+  }
   console.log("[live] bootstrap — no prior anchor, using lenient global search");
   return globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId, pickBestBootstrapResult);
 }
