@@ -36,8 +36,39 @@ function pickBestLiveResult(candidates: VerseSearchResult[]): VerseSearchResult[
   return [acceptable[0]];
 }
 
+async function globalSearch(
+  segmentQuery: string,
+  combinedQuery: string,
+  excludeVerseId: string | null
+): Promise<{ candidates: VerseSearchResult[]; mode: string }> {
+  const exclude = (v: VerseSearchResult) => v.id !== excludeVerseId;
+
+  if (segmentQuery) {
+    const seg = await searchVersesLive(segmentQuery, 5);
+    const picked = pickBestLiveResult(seg.filter(exclude));
+    if (picked.length) {
+      return { candidates: picked, mode: "global-segment" };
+    }
+    const topSeg = seg[0];
+    if (topSeg) {
+      console.log("[live] global segment-only top score:", topSeg.score.toFixed(4), "tier:", topSeg.lexicalTier ?? 0);
+    }
+  }
+
+  if (combinedQuery && combinedQuery !== segmentQuery) {
+    const combined = await searchVersesLive(combinedQuery, 5);
+    const picked = pickBestLiveResult(combined.filter(exclude));
+    if (picked.length) {
+      return { candidates: picked, mode: "global-combined" };
+    }
+  }
+
+  return { candidates: [], mode: "global-empty" };
+}
+
 async function resolveLiveSearch(
-  query: string,
+  combinedQuery: string,
+  segmentQuery: string,
   ctx: {
     canUseAnchoredAngSearch: boolean;
     lastMatchedOrderId: number | null;
@@ -51,7 +82,7 @@ async function resolveLiveSearch(
     typeof ctx.lastMatchedAng === "number" &&
     typeof ctx.lastMatchedOrderId === "number"
   ) {
-    const anchored = await searchVersesLiveAnchored(query, {
+    const anchored = await searchVersesLiveAnchored(combinedQuery, {
       anchorAng: ctx.lastMatchedAng,
       anchorOrderId: ctx.lastMatchedOrderId,
       excludeVerseId: ctx.lastMatchedVerseId,
@@ -61,18 +92,15 @@ async function resolveLiveSearch(
     if (picked.length) {
       return { candidates: picked, mode: anchored.mode };
     }
-    const global = await searchVersesLive(query, 5);
-    picked = pickBestLiveResult(global.filter(v => v.id !== ctx.lastMatchedVerseId));
-    if (picked.length) {
-      console.log("[live] narrowed ang window — global re-locate fallback");
-      return { candidates: picked, mode: `${anchored.mode}-global-fallback` };
+    console.log("[live] ang window empty — global re-locate fallback");
+    const fallback = await globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId);
+    if (fallback.candidates.length) {
+      return { candidates: fallback.candidates, mode: `${anchored.mode}-${fallback.mode}` };
     }
     return { candidates: [], mode: anchored.mode };
   }
 
-  const global = await searchVersesLive(query, 5);
-  const picked = pickBestLiveResult(global.filter(v => v.id !== ctx.lastMatchedVerseId));
-  return { candidates: picked, mode: picked.length ? "global-bootstrap" : "global-bootstrap-empty" };
+  return globalSearch(segmentQuery, combinedQuery, ctx.lastMatchedVerseId);
 }
 
 /**
@@ -129,13 +157,14 @@ export async function POST(request: Request) {
     }
 
     console.log("[live] transcription:", text.slice(0, 120));
-    const searchInput = [rollingTranscript, text].filter(Boolean).join(" ").trim();
-    const query = trimForSearch(searchInput);
-    if (!query) {
+    const segmentQuery = trimForSearch(text);
+    const combinedInput = [rollingTranscript, text].filter(Boolean).join(" ").trim();
+    const combinedQuery = trimForSearch(combinedInput);
+    if (!segmentQuery && !combinedQuery) {
       return NextResponse.json({ text, results: [] as VerseSearchResult[] });
     }
     if (rollingTranscript) {
-      console.log("[live] rolling+segment query chars:", query.length);
+      console.log("[live] segment chars:", segmentQuery.length, "combined chars:", combinedQuery.length);
     }
 
     try {
@@ -150,13 +179,17 @@ export async function POST(request: Request) {
         typeof lastMatchedScore === "number" &&
         lastMatchedScore >= LIVE_MIN_SCORE;
 
-      const { candidates, mode: searchMode } = await resolveLiveSearch(query, {
-        canUseAnchoredAngSearch,
-        lastMatchedOrderId,
-        lastMatchedAng,
-        lastMatchedVerseId,
-        lastMatchedScore
-      });
+      const { candidates, mode: searchMode } = await resolveLiveSearch(
+        combinedQuery || segmentQuery,
+        segmentQuery,
+        {
+          canUseAnchoredAngSearch,
+          lastMatchedOrderId,
+          lastMatchedAng,
+          lastMatchedVerseId,
+          lastMatchedScore
+        }
+      );
 
       const results = candidates.slice(0, 1);
       const searchMs = Date.now() - searchStartedAt;
