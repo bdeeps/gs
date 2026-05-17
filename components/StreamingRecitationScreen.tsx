@@ -13,7 +13,7 @@ const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 1_024;
 const MIN_SCORE_TO_SHOW = 0.95;
 
-function shouldShowLiveVerse(verse: VerseSearchResult | undefined): boolean {
+function shouldShowLiveVerse(verse: VerseSearchResult | undefined): verse is VerseSearchResult {
   if (!verse) return false;
   if (verse.sequentialAdvance) return true;
   if (verse.score >= MIN_SCORE_TO_SHOW) return true;
