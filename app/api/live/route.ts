@@ -3,6 +3,7 @@ import { incrementAppMetrics } from "@/lib/app-metrics";
 import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import {
   isAcceptableLiveMatch,
+  isAcceptableGlobalMatch,
   LIVE_MIN_SCORE,
   searchVersesLive,
   searchVersesLiveAnchored
@@ -36,6 +37,14 @@ function pickBestLiveResult(candidates: VerseSearchResult[]): VerseSearchResult[
   return [acceptable[0]];
 }
 
+function pickBestGlobalResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
+  const acceptable = candidates.filter(isAcceptableGlobalMatch);
+  if (!acceptable.length) {
+    return [];
+  }
+  return [acceptable[0]];
+}
+
 async function globalSearch(
   segmentQuery: string,
   combinedQuery: string,
@@ -58,7 +67,7 @@ async function globalSearch(
       console.log("[live-global] segment top 3:", JSON.stringify(top3));
     }
     const filtered = seg.filter(exclude);
-    const picked = pickBestLiveResult(filtered);
+    const picked = pickBestGlobalResult(filtered);
     if (picked.length) {
       console.log("[live-global] MATCHED via segment-only");
       return { candidates: picked, mode: "global-segment" };
@@ -83,7 +92,7 @@ async function globalSearch(
       console.log("[live-global] combined top 3:", JSON.stringify(top3));
     }
     const filtered = combined.filter(exclude);
-    const picked = pickBestLiveResult(filtered);
+    const picked = pickBestGlobalResult(filtered);
     if (picked.length) {
       console.log("[live-global] MATCHED via combined");
       return { candidates: picked, mode: "global-combined" };
