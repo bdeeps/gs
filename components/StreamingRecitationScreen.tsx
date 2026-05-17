@@ -8,10 +8,10 @@ import type { VerseSearchResult } from "@/lib/types";
 import { AudioWaveform } from "@/components/AudioWaveform";
 import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 
-const FIRST_SEGMENT_MS = 2_000;
+const FIRST_SEGMENT_MS = 3_000;
 const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 4_096;
-const MIN_SCORE_TO_SHOW = 0.15;
+const MIN_SCORE_TO_SHOW = 0.95;
 
 export type StreamingRecitationCopy = {
   title: string;
