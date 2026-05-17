@@ -43,7 +43,7 @@ test("accepts strong lexical tier even when score is below threshold", () => {
   );
 });
 
-test("accepts sequential advance verses", () => {
+test("rejects auto-advanced verses without transcript match", () => {
   assert.equal(
     isAcceptableLiveMatch({
       id: "c",
@@ -60,7 +60,7 @@ test("accepts sequential advance verses", () => {
       score: 0.99,
       sequentialAdvance: true
     }),
-    true
+    false
   );
 });
 

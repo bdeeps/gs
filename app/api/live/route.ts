@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { incrementAppMetrics } from "@/lib/app-metrics";
 import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import {
-  getNextVerseAfterOrder,
   isAcceptableLiveMatch,
   LIVE_MIN_SCORE,
   searchVersesLive,
@@ -27,6 +26,19 @@ function pickBestLiveResult(candidates: VerseSearchResult[]): VerseSearchResult[
     return [];
   }
   return [acceptable[0]];
+}
+
+/** Sequential cohort: require a real lexical match, never auto-advance. */
+function pickBestSequentialResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
+  const matched = candidates.filter(
+    (verse) =>
+      !verse.sequentialAdvance &&
+      ((verse.lexicalTier ?? 0) >= 3 || verse.score >= LIVE_MIN_SCORE)
+  );
+  if (!matched.length) {
+    return [];
+  }
+  return [matched[0]];
 }
 
 /**
@@ -95,7 +107,7 @@ export async function POST(request: Request) {
         lastMatchedScore >= LIVE_MIN_SCORE;
 
       let candidates: VerseSearchResult[] = [];
-      let searchMode: "sequential" | "sequential-advance" | "global" = "global";
+      let searchMode: "sequential" | "global" = "global";
 
       if (canUseSequentialAnchor) {
         const sequential = await searchVersesNearOrder(query, {
@@ -104,16 +116,10 @@ export async function POST(request: Request) {
           beforeWindow: 2,
           afterWindow: 24
         });
-        const sequentialPick = pickBestLiveResult(sequential);
+        const sequentialPick = pickBestSequentialResult(sequential);
         if (sequentialPick.length) {
           candidates = sequentialPick;
           searchMode = "sequential";
-        } else {
-          const advanced = await getNextVerseAfterOrder(lastMatchedOrderId);
-          if (advanced) {
-            candidates = [advanced];
-            searchMode = "sequential-advance";
-          }
         }
       }
 

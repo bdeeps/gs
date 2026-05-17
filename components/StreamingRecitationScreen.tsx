@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
 import type { CardStyle, DisplayTemplate, FontScale, LiveDisplayMode, VerseMode } from "@/lib/app-settings";
+import { isTwoColumnTemplate, resolveEffectiveVerseMode } from "@/lib/display-layout";
 import { pickRecorderMimeType } from "@/lib/recordingMime";
 import type { VerseSearchResult } from "@/lib/types";
 import { AudioWaveform } from "@/components/AudioWaveform";
@@ -15,7 +16,7 @@ const MIN_SCORE_TO_SHOW = 0.95;
 
 function shouldShowLiveVerse(verse: VerseSearchResult | undefined): verse is VerseSearchResult {
   if (!verse) return false;
-  if (verse.sequentialAdvance) return true;
+  if (verse.sequentialAdvance) return false;
   if (verse.score >= MIN_SCORE_TO_SHOW) return true;
   return (verse.lexicalTier ?? 0) >= 3;
 }
@@ -57,6 +58,7 @@ type StreamingRecitationScreenProps = {
   copy: StreamingRecitationCopy;
   langClass?: string;
   onClose: () => void;
+  onRefreshSettings?: () => void | Promise<void>;
 };
 
 const INSTRUCTIONS = [
@@ -86,10 +88,14 @@ export function StreamingRecitationScreen({
   liveDisplayMode = "timeline",
   copy,
   langClass = "",
-  onClose
+  onClose,
+  onRefreshSettings
 }: StreamingRecitationScreenProps) {
-  const effectiveVerseMode: VerseMode =
-    verseMode ?? (liveDisplayMode === "single_english" ? "single" : "streaming");
+  const effectiveVerseMode = resolveEffectiveVerseMode({
+    displayTemplate,
+    verseMode,
+    liveDisplayMode
+  });
   const isSingleMode = effectiveVerseMode === "single";
   const isTwoMode = effectiveVerseMode === "two";
   const isStreamingMode = effectiveVerseMode === "streaming";
@@ -391,6 +397,7 @@ export function StreamingRecitationScreen({
   /* ── start / stop ────────────────────────────────────────── */
 
   const startRecording = async (source: "mic" | "tab") => {
+    await onRefreshSettings?.();
     setLocalError(null); setStreamError(null); setLiveTranscript(""); setTimeline([]);
     stickToBottomRef.current = true; fullCleanup();
     const sessionId = sessionIdRef.current;
@@ -581,7 +588,7 @@ export function StreamingRecitationScreen({
               return (
             <div
               className={
-                displayTemplate === "shabad_pair" || displayTemplate === "pothi_panel"
+                isTwoColumnTemplate(displayTemplate)
                   ? "grid gap-4 md:grid-cols-2"
                   : "grid gap-4"
               }

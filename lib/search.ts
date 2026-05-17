@@ -380,7 +380,7 @@ function rowToVerseResult(
 
 export function isAcceptableLiveMatch(verse: VerseSearchResult | undefined): boolean {
   if (!verse) return false;
-  if (verse.sequentialAdvance) return true;
+  if (verse.sequentialAdvance) return false;
   if (verse.score >= LIVE_MIN_SCORE) return true;
   return (verse.lexicalTier ?? 0) >= 3;
 }

@@ -9,6 +9,7 @@ import type {
   LiveDisplayMode,
   VerseMode
 } from "@/lib/app-settings";
+import { verseModeForTemplate } from "@/lib/display-layout";
 import { GurudwaraLogoutButton } from "@/components/GurudwaraLogoutButton";
 
 type MeUser = {
@@ -172,7 +173,14 @@ export default function DashboardPage() {
               Template
               <select
                 value={displayTemplate}
-                onChange={(ev) => setDisplayTemplate(ev.target.value as DisplayTemplate)}
+                onChange={(ev) => {
+                  const next = ev.target.value as DisplayTemplate;
+                  setDisplayTemplate(next);
+                  const implied = verseModeForTemplate(next);
+                  if (implied) {
+                    setVerseMode(implied);
+                  }
+                }}
                 className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm"
               >
                 {TEMPLATE_OPTIONS.map((option) => (
