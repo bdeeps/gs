@@ -151,19 +151,10 @@ const SEARCH_VERSES_SQL = `
 `;
 
 export function normalizeSearchText(value: string) {
-  const withoutPunctuation = value
+  return value
     .toLowerCase()
-    .replace(/[।॥]/g, " ");
-
-  if (/[\u0A00-\u0A7F]/.test(withoutPunctuation)) {
-    return withoutPunctuation
-      .replace(/[^\u0A00-\u0A7F\s]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  return withoutPunctuation
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/[।॥]/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
