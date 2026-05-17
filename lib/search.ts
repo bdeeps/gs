@@ -305,6 +305,7 @@ type SearchVersesDeps = {
   embedQueryFn: (input: string) => Promise<number[]>;
   fetchRowsFn: (inputs: SearchQueryInputs) => Promise<VerseRow[]>;
   fetchRowsNearOrderFn: (inputs: SearchNearOrderInputs) => Promise<VerseRow[]>;
+  fetchRowsInAngCohortFn: (inputs: SearchAngCohortInputs) => Promise<VerseRow[]>;
   fetchVerseByOrderFn: (orderId: number) => Promise<VerseRow | null>;
 };
 
@@ -312,6 +313,13 @@ type SearchNearOrderInputs = {
   anchorOrderId: number;
   beforeWindow: number;
   afterWindow: number;
+};
+
+type SearchAngCohortInputs = {
+  embedding: number[];
+  anchorAng: number;
+  anchorOrderId: number;
+  excludeVerseId: string | null;
 };
 
 const SEARCH_VERSES_NEAR_ORDER_SQL = `
@@ -331,6 +339,28 @@ const SEARCH_VERSES_NEAR_ORDER_SQL = `
   FROM verses
   WHERE order_id IS NOT NULL
     AND order_id BETWEEN ($1::int - $2::int) AND ($1::int + $3::int)
+  ORDER BY order_id ASC
+`;
+
+const SEARCH_VERSES_ANG_COHORT_SQL = `
+  SELECT
+    id,
+    source,
+    shabad_id,
+    gurmukhi,
+    transliteration,
+    translation,
+    ang,
+    raag,
+    author,
+    order_id,
+    1 - (embedding <=> $1::vector) AS semantic_score,
+    0::float8 AS score
+  FROM verses
+  WHERE ang = $2::int
+    AND order_id IS NOT NULL
+    AND order_id > $3::int
+    AND ($4::text IS NULL OR id::text <> $4::text)
   ORDER BY order_id ASC
 `;
 
@@ -405,6 +435,15 @@ const defaultSearchDeps: SearchVersesDeps = {
       inputs.anchorOrderId,
       inputs.beforeWindow,
       inputs.afterWindow
+    ]);
+    return rows;
+  },
+  async fetchRowsInAngCohortFn(inputs) {
+    const { rows } = await getPool().query<VerseRow>(SEARCH_VERSES_ANG_COHORT_SQL, [
+      toVectorLiteral(inputs.embedding),
+      inputs.anchorAng,
+      inputs.anchorOrderId,
+      inputs.excludeVerseId
     ]);
     return rows;
   },
@@ -484,6 +523,108 @@ export async function searchVersesLive(
   return searchVerses(query, limit, { minContainmentChars: LIVE_MIN_CONTAINMENT_CHARS });
 }
 
+function rankCohortCandidates(
+  rows: VerseRow[],
+  normalizedAsciiQuery: string | null,
+  normalizedCleanQuery: string | null,
+  anchorOrderId: number
+) {
+  const ranked = rankVerseCandidates(
+    rows,
+    normalizedAsciiQuery,
+    normalizedCleanQuery,
+    LIVE_MIN_CONTAINMENT_CHARS
+  );
+
+  const nextExpectedOrderId = anchorOrderId + 1;
+  ranked.sort(
+    (a, b) =>
+      b.lexicalTier - a.lexicalTier ||
+      b.matchSpan - a.matchSpan ||
+      proximityScore(a.order_id, nextExpectedOrderId) -
+        proximityScore(b.order_id, nextExpectedOrderId) ||
+      b.semantic_score - a.semantic_score
+  );
+
+  return ranked;
+}
+
+export function pickBestCohortMatch(
+  candidates: VerseSearchResult[],
+  anchorOrderId: number,
+  anchorVerseId?: string | null
+): VerseSearchResult[] {
+  const matched = candidates.filter(
+    (verse) =>
+      !verse.sequentialAdvance &&
+      verse.id !== anchorVerseId &&
+      (verse.orderId ?? 0) > anchorOrderId &&
+      ((verse.lexicalTier ?? 0) >= 3 || verse.score >= LIVE_MIN_SCORE)
+  );
+  if (!matched.length) {
+    return [];
+  }
+  return [matched[0]];
+}
+
+export async function searchVersesInAngCohort(
+  query: string,
+  input: {
+    anchorAng: number;
+    anchorOrderId: number;
+    excludeVerseId?: string | null;
+    limit?: number;
+  },
+  deps: SearchVersesDeps = defaultSearchDeps
+): Promise<VerseSearchResult[]> {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) {
+    return [];
+  }
+
+  const safeLimit = Math.max(1, Math.min(MAX_SEARCH_LIMIT, Math.floor(input.limit ?? 1)));
+  const anchorAng = Math.floor(input.anchorAng);
+  const anchorOrderId = Math.floor(input.anchorOrderId);
+  if (!Number.isFinite(anchorAng) || anchorAng <= 0) {
+    return [];
+  }
+  if (!Number.isFinite(anchorOrderId) || anchorOrderId <= 0) {
+    return [];
+  }
+
+  const asciiQuery = toAsciiGurmukhi(cleanQuery);
+  const normalizedAsciiQuery = normalizeSearchText(asciiQuery) || null;
+  const normalizedCleanQuery = normalizeSearchText(cleanQuery) || null;
+  const embedding = await deps.embedQueryFn(asciiQuery);
+
+  const rows = await deps.fetchRowsInAngCohortFn({
+    embedding,
+    anchorAng,
+    anchorOrderId,
+    excludeVerseId: input.excludeVerseId?.trim() || null
+  });
+
+  if (!rows.length) {
+    return [];
+  }
+
+  const ranked = rankCohortCandidates(
+    rows,
+    normalizedAsciiQuery,
+    normalizedCleanQuery,
+    anchorOrderId
+  );
+
+  const best = ranked[0];
+  if (!best || best.lexicalTier < 1) {
+    return [];
+  }
+
+  return ranked.slice(0, safeLimit).map((row) =>
+    rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
+  );
+}
+
 export async function searchVersesNearOrder(
   query: string,
   input: {
@@ -522,21 +663,11 @@ export async function searchVersesNearOrder(
     return [];
   }
 
-  const ranked = rankVerseCandidates(
+  const ranked = rankCohortCandidates(
     rows,
     normalizedAsciiQuery,
     normalizedCleanQuery,
-    LIVE_MIN_CONTAINMENT_CHARS
-  );
-
-  const nextExpectedOrderId = anchorOrderId + 1;
-  ranked.sort(
-    (a, b) =>
-      b.lexicalTier - a.lexicalTier ||
-      b.matchSpan - a.matchSpan ||
-      proximityScore(a.order_id, nextExpectedOrderId) -
-        proximityScore(b.order_id, nextExpectedOrderId) ||
-      b.semantic_score - a.semantic_score
+    anchorOrderId
   );
 
   const best = ranked[0];

@@ -4,6 +4,8 @@ import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import {
   isAcceptableLiveMatch,
   LIVE_MIN_SCORE,
+  pickBestCohortMatch,
+  searchVersesInAngCohort,
   searchVersesLive,
   searchVersesNearOrder
 } from "@/lib/search";
@@ -20,25 +22,20 @@ function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseOptionalString(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
 function pickBestLiveResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
   const acceptable = candidates.filter(isAcceptableLiveMatch);
   if (!acceptable.length) {
     return [];
   }
   return [acceptable[0]];
-}
-
-/** Sequential cohort: require a real lexical match, never auto-advance. */
-function pickBestSequentialResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
-  const matched = candidates.filter(
-    (verse) =>
-      !verse.sequentialAdvance &&
-      ((verse.lexicalTier ?? 0) >= 3 || verse.score >= LIVE_MIN_SCORE)
-  );
-  if (!matched.length) {
-    return [];
-  }
-  return [matched[0]];
 }
 
 /**
@@ -80,6 +77,8 @@ export async function POST(request: Request) {
 
   const lastMatchedOrderId = parseOptionalNumber(formData.get("lastMatchedOrderId"));
   const lastMatchedScore = parseOptionalNumber(formData.get("lastMatchedScore"));
+  const lastMatchedAng = parseOptionalNumber(formData.get("lastMatchedAng"));
+  const lastMatchedVerseId = parseOptionalString(formData.get("lastMatchedVerseId"));
 
   try {
     const transcribeStartedAt = Date.now();
@@ -99,31 +98,59 @@ export async function POST(request: Request) {
 
     try {
       const searchStartedAt = Date.now();
-      const canUseSequentialAnchor =
+      const canUseAngCohort =
         typeof lastMatchedOrderId === "number" &&
         Number.isInteger(lastMatchedOrderId) &&
         lastMatchedOrderId > 0 &&
+        typeof lastMatchedAng === "number" &&
+        Number.isInteger(lastMatchedAng) &&
+        lastMatchedAng > 0 &&
         typeof lastMatchedScore === "number" &&
         lastMatchedScore >= LIVE_MIN_SCORE;
 
       let candidates: VerseSearchResult[] = [];
-      let searchMode: "sequential" | "global" = "global";
+      let searchMode: "ang-cohort" | "order-cohort" | "global" = "global";
 
-      if (canUseSequentialAnchor) {
+      if (canUseAngCohort) {
+        const cohort = await searchVersesInAngCohort(query, {
+          anchorAng: lastMatchedAng,
+          anchorOrderId: lastMatchedOrderId,
+          excludeVerseId: lastMatchedVerseId,
+          limit: 5
+        });
+        const cohortPick = pickBestCohortMatch(
+          cohort,
+          lastMatchedOrderId,
+          lastMatchedVerseId
+        );
+        if (cohortPick.length) {
+          candidates = cohortPick;
+          searchMode = "ang-cohort";
+        }
+      } else if (
+        typeof lastMatchedOrderId === "number" &&
+        lastMatchedOrderId > 0 &&
+        typeof lastMatchedScore === "number" &&
+        lastMatchedScore >= LIVE_MIN_SCORE
+      ) {
         const sequential = await searchVersesNearOrder(query, {
           anchorOrderId: lastMatchedOrderId,
-          limit: 3,
-          beforeWindow: 2,
-          afterWindow: 24
+          limit: 5,
+          beforeWindow: 0,
+          afterWindow: 40
         });
-        const sequentialPick = pickBestSequentialResult(sequential);
+        const sequentialPick = pickBestCohortMatch(
+          sequential,
+          lastMatchedOrderId,
+          lastMatchedVerseId
+        );
         if (sequentialPick.length) {
           candidates = sequentialPick;
-          searchMode = "sequential";
+          searchMode = "order-cohort";
         }
       }
 
-      if (!candidates.length) {
+      if (!candidates.length && !canUseAngCohort) {
         const global = await searchVersesLive(query, 3);
         candidates = pickBestLiveResult(global);
         searchMode = "global";
@@ -138,6 +165,8 @@ export async function POST(request: Request) {
         topScore.toFixed(4),
         "tier:",
         top?.lexicalTier ?? "n/a",
+        "ang:",
+        top?.ang ?? "n/a",
         "verse:",
         top?.gurmukhi?.slice(0, 60) ?? "none"
       );
