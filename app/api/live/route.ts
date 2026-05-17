@@ -79,6 +79,7 @@ export async function POST(request: Request) {
   const lastMatchedScore = parseOptionalNumber(formData.get("lastMatchedScore"));
   const lastMatchedAng = parseOptionalNumber(formData.get("lastMatchedAng"));
   const lastMatchedVerseId = parseOptionalString(formData.get("lastMatchedVerseId"));
+  const rollingTranscript = parseOptionalString(formData.get("rollingTranscript"));
 
   try {
     const transcribeStartedAt = Date.now();
@@ -91,9 +92,13 @@ export async function POST(request: Request) {
     }
 
     console.log("[live] transcription:", text.slice(0, 120));
-    const query = trimForSearch(text);
+    const searchInput = [rollingTranscript, text].filter(Boolean).join(" ").trim();
+    const query = trimForSearch(searchInput);
     if (!query) {
       return NextResponse.json({ text, results: [] as VerseSearchResult[] });
+    }
+    if (rollingTranscript) {
+      console.log("[live] rolling+segment query chars:", query.length);
     }
 
     try {
@@ -135,7 +140,8 @@ export async function POST(request: Request) {
         const sequentialPick = pickBestCohortMatch(
           sequential,
           lastMatchedOrderId,
-          lastMatchedVerseId
+          lastMatchedVerseId,
+          query
         );
         if (sequentialPick.length) {
           candidates = pickBestLiveResult(sequentialPick);

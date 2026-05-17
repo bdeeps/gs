@@ -151,9 +151,18 @@ const SEARCH_VERSES_SQL = `
 `;
 
 export function normalizeSearchText(value: string) {
-  return value
+  const withoutPunctuation = value
     .toLowerCase()
-    .replace(/[।॥]/g, " ")
+    .replace(/[।॥]/g, " ");
+
+  if (/[\u0A00-\u0A7F]/.test(withoutPunctuation)) {
+    return withoutPunctuation
+      .replace(/[^\u0A00-\u0A7F\s]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  return withoutPunctuation
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -407,6 +416,49 @@ export const LIVE_MIN_SCORE = 0.95;
 export const LIVE_MIN_CONTAINMENT_CHARS = 4;
 /** How many forward verses on an ang to load/rank for live cohort search. */
 export const LIVE_ANG_COHORT_FORWARD_LIMIT = 60;
+/** Max order distance for relaxed live cohort matching on the same ang. */
+export const LIVE_COHORT_NEAR_ORDER = 10;
+/** Semantic floor for the immediate next forward verse during live cohort. */
+export const LIVE_COHORT_SEMANTIC_MIN = 0.88;
+const LIVE_COHORT_MIN_TOKEN_OVERLAP = 2;
+
+export function countGurmukhiTokenOverlap(gurmukhi: string, query: string): number {
+  const field = normalizeSearchText(gurmukhi);
+  if (!field || !query.trim()) {
+    return 0;
+  }
+
+  const queryVariants = [
+    normalizeSearchText(query),
+    normalizeSearchText(toAsciiGurmukhi(query))
+  ].filter((value, index, list) => value && list.indexOf(value) === index);
+
+  let best = 0;
+  for (const normalizedQuery of queryVariants) {
+    const tokens = normalizedQuery.split(/\s+/).filter((token) => token.length >= 3);
+    let overlap = 0;
+    for (const token of tokens) {
+      if (field.includes(token)) {
+        overlap += 1;
+      }
+    }
+    best = Math.max(best, overlap);
+  }
+
+  return best;
+}
+
+export function liveCohortTokenOverlapAccepts(gurmukhi: string, query: string): boolean {
+  return countGurmukhiTokenOverlap(gurmukhi, query) >= LIVE_COHORT_MIN_TOKEN_OVERLAP;
+}
+
+function boostLiveCohortVerse(verse: VerseSearchResult): VerseSearchResult {
+  return {
+    ...verse,
+    score: Math.max(verse.score, 0.96),
+    lexicalTier: Math.max(verse.lexicalTier ?? 0, 3)
+  };
+}
 
 function rowToVerseResult(
   row: VerseRow & { lexicalTier?: number; displayScore?: number },
@@ -589,25 +641,46 @@ function isCohortAcceptableMatch(verse: VerseSearchResult): boolean {
 export function pickBestCohortMatch(
   candidates: VerseSearchResult[],
   anchorOrderId: number,
-  anchorVerseId?: string | null
+  anchorVerseId?: string | null,
+  query?: string | null
 ): VerseSearchResult[] {
-  const forward = candidates.filter(
-    (verse) =>
-      !verse.sequentialAdvance &&
-      verse.id !== anchorVerseId &&
-      (verse.orderId ?? 0) > anchorOrderId
-  );
-
-  const matched = forward
-    .filter(isCohortAcceptableMatch)
+  const forward = candidates
+    .filter(
+      (verse) =>
+        !verse.sequentialAdvance &&
+        verse.id !== anchorVerseId &&
+        (verse.orderId ?? 0) > anchorOrderId
+    )
     .sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0));
+
+  const matched = forward.filter(isCohortAcceptableMatch);
   if (matched.length) {
     return [matched[0]];
   }
 
-  const nextByOrder = forward.sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0))[0];
-  if (nextByOrder && nextByOrder.score >= LIVE_MIN_SCORE) {
-    return [nextByOrder];
+  const cleanQuery = query?.trim() ?? "";
+  if (cleanQuery) {
+    const overlapMatch = forward
+      .filter((verse) => (verse.orderId ?? 0) <= anchorOrderId + LIVE_COHORT_NEAR_ORDER)
+      .filter((verse) => liveCohortTokenOverlapAccepts(verse.gurmukhi, cleanQuery));
+    if (overlapMatch.length) {
+      return [boostLiveCohortVerse(overlapMatch[0])];
+    }
+  }
+
+  const nextByOrder = forward[0];
+  if (nextByOrder) {
+    if (nextByOrder.score >= LIVE_MIN_SCORE) {
+      return [nextByOrder];
+    }
+    if (
+      cleanQuery &&
+      (nextByOrder.orderId ?? 0) <= anchorOrderId + 3 &&
+      nextByOrder.score >= LIVE_COHORT_SEMANTIC_MIN &&
+      countGurmukhiTokenOverlap(nextByOrder.gurmukhi, cleanQuery) >= 1
+    ) {
+      return [boostLiveCohortVerse(nextByOrder)];
+    }
   }
 
   return [];
@@ -710,7 +783,7 @@ export async function searchVersesLiveAnchored(
       limit: anchor.limit ?? 5
     }, deps);
 
-    const pick = pickBestCohortMatch(cohort, orderId, excludeVerseId);
+    const pick = pickBestCohortMatch(cohort, orderId, excludeVerseId, query);
     if (pick.length) {
       const angAdvanced = step > 0;
       return {

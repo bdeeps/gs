@@ -13,6 +13,7 @@ const FIRST_SEGMENT_MS = 3_000;
 const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 1_024;
 const MIN_SCORE_TO_SHOW = 0.95;
+const ROLLING_TRANSCRIPT_MAX_CHARS = 400;
 
 function shouldShowLiveVerse(verse: VerseSearchResult | undefined): verse is VerseSearchResult {
   if (!verse) return false;
@@ -133,6 +134,7 @@ export function StreamingRecitationScreen({
   const lastVerseRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const lastMatchedVerseRef = useRef<VerseSearchResult | null>(null);
+  const rollingTranscriptRef = useRef("");
 
   /* ── cleanup helpers ─────────────────────────────────────── */
 
@@ -171,6 +173,7 @@ export function StreamingRecitationScreen({
     processInFlightRef.current = false;
     queuedBlobRef.current = null;
     lastMatchedVerseRef.current = null;
+    rollingTranscriptRef.current = "";
     stopMic();
     releaseWakeLock();
     setRecording(false);
@@ -286,6 +289,9 @@ export function StreamingRecitationScreen({
     if (typeof lastMatched?.score === "number") {
       formData.append("lastMatchedScore", String(lastMatched.score));
     }
+    if (rollingTranscriptRef.current) {
+      formData.append("rollingTranscript", rollingTranscriptRef.current);
+    }
     const res = await fetch("/api/live", { method: "POST", body: formData, signal });
     const payload = (await res.json()) as LiveResponse;
     if (!res.ok) throw new Error(payload.error || "Live search failed.");
@@ -321,6 +327,8 @@ export function StreamingRecitationScreen({
           if (signal?.aborted || sessionId !== currentSessionIdRef.current) break;
           if (text) {
             setLiveTranscript(text);
+            const combined = `${rollingTranscriptRef.current} ${text}`.trim();
+            rollingTranscriptRef.current = combined.slice(-ROLLING_TRANSCRIPT_MAX_CHARS);
             setPhase("searching");
             appendIfNewVerse(results?.[0], text);
           }

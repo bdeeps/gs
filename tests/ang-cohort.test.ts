@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  countGurmukhiTokenOverlap,
+  liveCohortTokenOverlapAccepts,
   pickBestCohortMatch,
   searchVersesInAngCohort,
   searchVersesLiveAnchored
@@ -110,6 +112,39 @@ test("pickBestCohortMatch skips anchor verse and requires forward order", () => 
   );
 
   assert.equal(picked[0]?.id, "line-101");
+});
+
+test("token overlap accepts partial STT for the next forward line", () => {
+  const heard = "ਜੁੜੀ ਕਲਾਮ ਇਹ ਲੇਖਾ ਲਿਖ ਜਾਣ";
+  const nextLine = "ਲੇਖਾ ਲਿਖਿ ਜਾਣੈ ਕੇਤੀ ਕਿਤਿ ਹੇਰਿ";
+  assert.ok(liveCohortTokenOverlapAccepts(nextLine, heard));
+  assert.ok(countGurmukhiTokenOverlap(nextLine, heard) >= 2);
+
+  const picked = pickBestCohortMatch(
+    [
+      {
+        id: "line-102",
+        source: "sggs",
+        shabadId: null,
+        gurmukhi: nextLine,
+        transliteration: null,
+        translation: null,
+        translationHi: null,
+        ang: 3,
+        raag: null,
+        author: null,
+        orderId: 102,
+        score: 0.72,
+        lexicalTier: 0
+      }
+    ],
+    100,
+    "line-100",
+    heard
+  );
+
+  assert.equal(picked[0]?.id, "line-102");
+  assert.equal(picked[0]?.score, 0.96);
 });
 
 test("pickBestCohortMatch prefers earliest forward acceptable verse", () => {
