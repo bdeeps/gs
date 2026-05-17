@@ -101,9 +101,11 @@ export function StreamingRecitationScreen({
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
 
   const beginSegmentRef = useRef<() => void>(() => {});
-  const processSegmentRef = useRef<(blob: Blob) => void>(() => {});
+  const processSegmentRef = useRef<(blob: Blob, sessionId: number) => void>(() => {});
   const processInFlightRef = useRef(false);
   const queuedBlobRef = useRef<Blob | null>(null);
+  const sessionIdRef = useRef(0);
+  const currentSessionIdRef = useRef(0);
 
   const [recording, setRecording] = useState(false);
   const [audioSource, setAudioSource] = useState<"mic" | "tab">("mic");
@@ -137,6 +139,8 @@ export function StreamingRecitationScreen({
   }, []);
 
   const fullCleanup = useCallback(() => {
+    sessionIdRef.current += 1;
+    currentSessionIdRef.current = sessionIdRef.current;
     clearTimers();
     activeRef.current = false;
     abortRef.current?.abort();
@@ -262,11 +266,14 @@ export function StreamingRecitationScreen({
   /* ── segment processing ──────────────────────────────────── */
 
   const processSegment = useCallback(
-    async (blob: Blob) => {
+    async (blob: Blob, sessionId: number) => {
+      if (sessionId !== currentSessionIdRef.current) return;
       if (blob.size < MIN_TRANSCRIBE_BYTES) return;
       if (processInFlightRef.current) {
         // Keep only latest audio to avoid request backlog.
-        queuedBlobRef.current = blob;
+        if (sessionId === currentSessionIdRef.current) {
+          queuedBlobRef.current = blob;
+        }
         return;
       }
 
@@ -274,6 +281,7 @@ export function StreamingRecitationScreen({
       let currentBlob: Blob | null = blob;
 
       while (currentBlob) {
+        if (sessionId !== currentSessionIdRef.current) break;
         const signal = abortRef.current?.signal;
         if (signal?.aborted) break;
 
@@ -281,7 +289,7 @@ export function StreamingRecitationScreen({
         setStreamError(null);
         try {
           const { text, results } = await liveSearch(currentBlob, signal);
-          if (signal?.aborted) break;
+          if (signal?.aborted || sessionId !== currentSessionIdRef.current) break;
           if (text) {
             setLiveTranscript(text);
             setPhase("searching");
@@ -293,12 +301,14 @@ export function StreamingRecitationScreen({
           }
         }
 
-        currentBlob = queuedBlobRef.current;
+        currentBlob = sessionId === currentSessionIdRef.current ? queuedBlobRef.current : null;
         queuedBlobRef.current = null;
       }
 
       processInFlightRef.current = false;
-      setPhase("idle");
+      if (sessionId === currentSessionIdRef.current) {
+        setPhase("idle");
+      }
     },
     [liveSearch, appendIfNewVerse]
   );
@@ -308,6 +318,7 @@ export function StreamingRecitationScreen({
   const beginSegment = useCallback(() => {
     const stream = streamRef.current;
     if (!stream || !activeRef.current) return;
+    const segmentSessionId = currentSessionIdRef.current;
     chunksRef.current = [];
     const mimeType = pickRecorderMimeType();
     let recorder: MediaRecorder;
@@ -316,10 +327,14 @@ export function StreamingRecitationScreen({
     mimeRef.current = recorder.mimeType || mimeType || "audio/webm";
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     recorder.onstop = () => {
+      if (segmentSessionId !== currentSessionIdRef.current) {
+        chunksRef.current = [];
+        return;
+      }
       const blob = new Blob(chunksRef.current, { type: mimeRef.current });
       chunksRef.current = [];
-      if (activeRef.current) { beginSegmentRef.current(); void processSegmentRef.current(blob); }
-      else { stopMic(); releaseWakeLock(); recorderRef.current = null; void processSegmentRef.current(blob); }
+      if (activeRef.current) { beginSegmentRef.current(); void processSegmentRef.current(blob, segmentSessionId); }
+      else { stopMic(); releaseWakeLock(); recorderRef.current = null; void processSegmentRef.current(blob, segmentSessionId); }
     };
     recorder.onerror = () => {
       if (!activeRef.current) return;
@@ -355,9 +370,15 @@ export function StreamingRecitationScreen({
   const startRecording = async (source: "mic" | "tab") => {
     setLocalError(null); setStreamError(null); setLiveTranscript(""); setTimeline([]);
     stickToBottomRef.current = true; fullCleanup();
+    const sessionId = sessionIdRef.current;
+    currentSessionIdRef.current = sessionId;
     if (source === "mic" && !navigator.mediaDevices?.getUserMedia) { setLocalError(copy.browserNoMic); return; }
     try {
       const stream = await acquireStream(source);
+      if (sessionId !== currentSessionIdRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
       abortRef.current = new AbortController();
       const track = stream.getAudioTracks()[0];
@@ -511,7 +532,7 @@ export function StreamingRecitationScreen({
         ) : isSingleMode ? (
           /* Single-verse hero: always exactly 1 entry, vertically + horizontally centered */
           <div className="flex min-h-full items-center justify-center px-4 py-8">
-            <div className="w-full max-w-3xl">
+            <div className="w-full max-w-[96vw] xl:max-w-[1800px]">
               {timeline.slice(-1).map((entry) => (
                 <div key={entry.key} ref={lastVerseRef}>
                   <StreamingVerseBlock
@@ -560,7 +581,7 @@ export function StreamingRecitationScreen({
           </div>
         ) : (
           /* Timeline mode: scrolling list */
-          <div className="mx-auto w-full max-w-3xl">
+          <div className="mx-auto w-full max-w-[96vw] xl:max-w-[1800px]">
             {timeline.map((entry, i) => (
               <div key={entry.key} ref={i === timeline.length - 1 ? lastVerseRef : undefined}>
                 <StreamingVerseBlock

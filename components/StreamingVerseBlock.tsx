@@ -65,14 +65,14 @@ export function StreamingVerseBlock({
         {/* DB verse — large Punjabi */}
         <p
           lang="pa"
-          className={`text-center font-gurmukhi leading-snug text-stone-950 ${heroPunjabiSize}`}
+          className={`text-center font-gurmukhi leading-snug break-words text-stone-950 ${heroPunjabiSize}`}
         >
           {gurmukhiDisplay}
         </p>
 
         {/* DB English translation */}
         {verse.translation ? (
-          <p lang="en" className={`mt-5 text-center font-medium leading-snug text-stone-600 ${heroEnglishSize}`}>
+          <p lang="en" className={`mt-5 text-center font-medium leading-snug break-words text-stone-600 ${heroEnglishSize}`}>
             {verse.translation}
           </p>
         ) : (
@@ -102,13 +102,13 @@ export function StreamingVerseBlock({
     <div className={["animate-fade-in px-4 py-4 sm:py-5", cardClass, template === "seva_stream" ? "bg-transparent shadow-none border-none" : ""].join(" ").trim()}>
       <p
         lang="pa"
-        className={`text-center font-gurmukhi leading-snug text-stone-950 ${timelinePunjabiSize}`}
+        className={`text-center font-gurmukhi leading-snug break-words text-stone-950 ${timelinePunjabiSize}`}
       >
         {gurmukhiDisplay}
       </p>
 
       {verse.translation ? (
-        <p lang="en" className={`mt-2 text-center leading-snug text-stone-500 ${timelineEnglishSize}`}>
+        <p lang="en" className={`mt-2 text-center leading-snug break-words text-stone-500 ${timelineEnglishSize}`}>
           {verse.translation}
         </p>
       ) : null}
