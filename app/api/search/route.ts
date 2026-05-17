@@ -3,7 +3,7 @@ import { incrementAppMetrics } from "@/lib/app-metrics";
 import { getAppSettings } from "@/lib/app-settings";
 import { MAX_QUERY_CHARS, trimForSearch } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
-import { translateToHindi } from "@/lib/translate";
+import { translateToHindiCached } from "@/lib/translate";
 import type { VerseSearchResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const translated = settings.enableHindiTranslation
       ? await Promise.all(
           results.map((r) =>
-            r.translation ? translateToHindi(r.translation) : Promise.resolve(null)
+            r.translation ? translateToHindiCached({ text: r.translation, verseId: r.id }) : Promise.resolve(null)
           )
         )
       : new Array(results.length).fill(null);

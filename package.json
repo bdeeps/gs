@@ -9,6 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "bash scripts/start-with-embedding.sh",
+    "prestart:web": "node scripts/apply-schema.mjs",
     "start:web": "next start",
     "lint": "eslint .",
     "test": "NODE_ENV=test tsx --test tests/*.test.ts",

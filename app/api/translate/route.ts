@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { incrementAppMetrics } from "@/lib/app-metrics";
 import { getAppSettings } from "@/lib/app-settings";
-import { translateToHindi } from "@/lib/translate";
+import { translateToHindiCached } from "@/lib/translate";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ translatedText: null });
   }
 
-  const translatedText = await translateToHindi(text);
+  const translatedText = await translateToHindiCached({ text });
   await incrementAppMetrics({
     totalTranslationsRequested: 1,
     totalTranslationsSucceeded: translatedText ? 1 : 0

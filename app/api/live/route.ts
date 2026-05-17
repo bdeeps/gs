@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { incrementAppMetrics } from "@/lib/app-metrics";
 import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
-import { transcribeAudio, TranscriptionError } from "@/lib/transcribe";
+import { transcribeAudioLive, TranscriptionError } from "@/lib/transcribe";
 import type { VerseSearchResult } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -13,6 +13,7 @@ export const runtime = "nodejs";
  * so the verse reaches the screen as fast as possible.
  */
 export async function POST(request: Request) {
+  const startedAt = Date.now();
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > MAX_AUDIO_BYTES + 1_000_000) {
     return NextResponse.json(
@@ -45,7 +46,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const text = await transcribeAudio(audio);
+    const transcribeStartedAt = Date.now();
+    const text = await transcribeAudioLive(audio);
+    const transcribeMs = Date.now() - transcribeStartedAt;
 
     if (!text) {
       console.log("[live] no transcription produced (silence or prompt echo)");
@@ -59,7 +62,9 @@ export async function POST(request: Request) {
     }
 
     try {
+      const searchStartedAt = Date.now();
       const results = await searchVerses(query, 1);
+      const searchMs = Date.now() - searchStartedAt;
       const topScore = results[0]?.score ?? 0;
       console.log(
         "[live] top result score:",
@@ -67,8 +72,16 @@ export async function POST(request: Request) {
         "verse:",
         results[0]?.gurmukhi?.slice(0, 60) ?? "none"
       );
+      console.log(
+        "[live] timings ms:",
+        JSON.stringify({
+          transcribe: transcribeMs,
+          search: searchMs,
+          total: Date.now() - startedAt
+        })
+      );
 
-      await incrementAppMetrics({
+      void incrementAppMetrics({
         totalLiveRequests: 1,
         totalVersesMatched: results.length
       });
@@ -76,7 +89,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ text, results });
     } catch (searchError) {
       console.error("[live] search failed after transcription:", searchError);
-      await incrementAppMetrics({ totalLiveRequests: 1 });
+      void incrementAppMetrics({ totalLiveRequests: 1 });
       // Keep session alive for tab audio/music even if embedding/search backend is flaky.
       return NextResponse.json({ text, results: [] as VerseSearchResult[] });
     }

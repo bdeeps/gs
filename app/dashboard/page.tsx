@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { LiveDisplayMode } from "@/lib/app-settings";
+import type {
+  CardStyle,
+  DisplayTemplate,
+  FontScale,
+  LiveDisplayMode,
+  VerseMode
+} from "@/lib/app-settings";
 import { GurudwaraLogoutButton } from "@/components/GurudwaraLogoutButton";
 
 type MeUser = {
@@ -20,10 +26,23 @@ type DashboardMetrics = {
   totalTranslationsSucceeded: number;
 };
 
+const TEMPLATE_OPTIONS: { id: DisplayTemplate; title: string; subtitle: string }[] = [
+  { id: "darbar_focus", title: "Darbar Focus", subtitle: "Single centered hero verse" },
+  { id: "shabad_pair", title: "Shabad Pair", subtitle: "Two verses side-by-side" },
+  { id: "shabad_pair_vertical", title: "Shabad Pair Vertical", subtitle: "Two verses stacked" },
+  { id: "seva_stream", title: "Seva Stream", subtitle: "Flowing timeline for live recitation" },
+  { id: "pothi_panel", title: "Pothi Panel", subtitle: "Structured panel style for projectors" },
+  { id: "maryada_minimal", title: "Maryada Minimal", subtitle: "Clean and humble minimal mode" }
+];
+
 export default function DashboardPage() {
   const [user, setUser] = useState<MeUser | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [enableHindiTranslation, setEnableHindiTranslation] = useState(false);
+  const [displayTemplate, setDisplayTemplate] = useState<DisplayTemplate>("darbar_focus");
+  const [verseMode, setVerseMode] = useState<VerseMode>("single");
+  const [fontScale, setFontScale] = useState<FontScale>("xlarge");
+  const [cardStyle, setCardStyle] = useState<CardStyle>("soft");
   const [liveDisplayMode, setLiveDisplayMode] = useState<LiveDisplayMode>("timeline");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -43,6 +62,10 @@ export default function DashboardPage() {
         const settings = (await settingsRes.json()) as {
           settings?: {
             enableHindiTranslation?: boolean;
+            displayTemplate?: DisplayTemplate;
+            verseMode?: VerseMode;
+            fontScale?: FontScale;
+            cardStyle?: CardStyle;
             liveDisplayMode?: LiveDisplayMode;
           };
         };
@@ -51,6 +74,10 @@ export default function DashboardPage() {
           setUser(data.user ?? null);
           setMetrics(stats.metrics ?? null);
           setEnableHindiTranslation(Boolean(settings.settings?.enableHindiTranslation));
+          setDisplayTemplate(settings.settings?.displayTemplate ?? "darbar_focus");
+          setVerseMode(settings.settings?.verseMode ?? "single");
+          setFontScale(settings.settings?.fontScale ?? "xlarge");
+          setCardStyle(settings.settings?.cardStyle ?? "soft");
           setLiveDisplayMode(
             settings.settings?.liveDisplayMode === "single_english" ? "single_english" : "timeline"
           );
@@ -76,7 +103,14 @@ export default function DashboardPage() {
       const res = await fetch("/api/admin/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enableHindiTranslation, liveDisplayMode })
+        body: JSON.stringify({
+          enableHindiTranslation,
+          displayTemplate,
+          verseMode,
+          fontScale,
+          cardStyle,
+          liveDisplayMode
+        })
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -110,102 +144,174 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-saffron-page px-5 py-10 text-stone-950 sm:px-8">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 rounded-[2rem] border border-white/70 bg-blue-950 p-8 text-white shadow-saffron sm:p-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-300">Gurudwara dashboard</p>
-            <h1 className="mt-2 text-3xl font-semibold">{user.name}</h1>
-            <p className="mt-2 text-blue-100">{user.email}</p>
+    <main className="min-h-screen bg-saffron-page px-4 py-6 text-stone-950 sm:px-6">
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+        {/* Sidebar */}
+        <aside className="rounded-3xl border border-white/70 bg-blue-950 p-6 text-white shadow-saffron">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Gurudwara dashboard</p>
+              <h1 className="mt-2 text-2xl font-semibold">{user.name}</h1>
+              <p className="mt-1 text-sm text-blue-100">{user.email}</p>
+            </div>
+            <GurudwaraLogoutButton />
           </div>
-          <GurudwaraLogoutButton />
-        </div>
 
-        <p className="text-sm text-blue-100">
-          Your account is active. Open{" "}
-          <Link href="/live" className="font-bold text-white underline">
-            live search
-          </Link>{" "}
-          from the home page when serving during diwan.
-        </p>
+          <div className="mt-6 space-y-4">
+            <label className="flex items-center gap-3 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={enableHindiTranslation}
+                onChange={(ev) => setEnableHindiTranslation(ev.target.checked)}
+                className="h-4 w-4 rounded border-white/40 bg-transparent"
+              />
+              Enable Hindi translation
+            </label>
 
-        <div className="rounded-2xl border border-white/20 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-amber-200">Usage dashboard</h2>
-          <p className="mt-1 text-sm text-blue-100/90">
-            Live counters for searches, matches, and translation activity.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
-              <p className="text-xs uppercase tracking-wide text-blue-200">Search requests</p>
-              <p className="mt-1 text-2xl font-semibold">{metrics?.totalSearchRequests ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
-              <p className="text-xs uppercase tracking-wide text-blue-200">Live requests</p>
-              <p className="mt-1 text-2xl font-semibold">{metrics?.totalLiveRequests ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
-              <p className="text-xs uppercase tracking-wide text-blue-200">Verses matched</p>
-              <p className="mt-1 text-2xl font-semibold">{metrics?.totalVersesMatched ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
-              <p className="text-xs uppercase tracking-wide text-blue-200">Translations requested</p>
-              <p className="mt-1 text-2xl font-semibold">{metrics?.totalTranslationsRequested ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-blue-900/50 p-3">
-              <p className="text-xs uppercase tracking-wide text-blue-200">Translations completed</p>
-              <p className="mt-1 text-2xl font-semibold">{metrics?.totalTranslationsSucceeded ?? 0}</p>
-            </div>
+            <label className="block text-sm font-medium">
+              Template
+              <select
+                value={displayTemplate}
+                onChange={(ev) => setDisplayTemplate(ev.target.value as DisplayTemplate)}
+                className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm"
+              >
+                {TEMPLATE_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block text-sm font-medium">
+              Verse mode
+              <select
+                value={verseMode}
+                onChange={(ev) => setVerseMode(ev.target.value as VerseMode)}
+                className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm"
+              >
+                <option value="single">Single verse</option>
+                <option value="two">Two verses</option>
+                <option value="streaming">Streaming verses</option>
+              </select>
+            </label>
+
+            <label className="block text-sm font-medium">
+              Font scale
+              <select
+                value={fontScale}
+                onChange={(ev) => setFontScale(ev.target.value as FontScale)}
+                className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm"
+              >
+                <option value="large">Large</option>
+                <option value="xlarge">X-Large</option>
+                <option value="projection">Projection</option>
+              </select>
+            </label>
+
+            <label className="block text-sm font-medium">
+              Card style
+              <select
+                value={cardStyle}
+                onChange={(ev) => setCardStyle(ev.target.value as CardStyle)}
+                className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm"
+              >
+                <option value="none">No cards</option>
+                <option value="soft">Soft cards</option>
+                <option value="elevated">Elevated cards</option>
+              </select>
+            </label>
+
+            <label className="block text-sm font-medium">
+              Legacy mode compatibility
+              <select
+                value={liveDisplayMode}
+                onChange={(ev) => setLiveDisplayMode(ev.target.value as LiveDisplayMode)}
+                className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm"
+              >
+                <option value="timeline">Timeline</option>
+                <option value="single_english">Single verse (legacy)</option>
+              </select>
+            </label>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-white/20 bg-white/5 p-5">
-          <h2 className="text-lg font-semibold text-amber-200">Admin display settings</h2>
-          <p className="mt-1 text-sm text-blue-100/90">
-            Configure translation and live screen behavior for this deployment.
-          </p>
-
-          <label className="mt-4 flex items-center gap-3 text-sm font-medium text-white">
-            <input
-              type="checkbox"
-              checked={enableHindiTranslation}
-              onChange={(ev) => setEnableHindiTranslation(ev.target.checked)}
-              className="h-4 w-4 rounded border-white/40 bg-transparent"
-            />
-            Enable Hindi translation (optional)
-          </label>
-
-          <label className="mt-4 block text-sm font-medium text-white">
-            Live display mode
-            <select
-              value={liveDisplayMode}
-              onChange={(ev) => setLiveDisplayMode(ev.target.value as LiveDisplayMode)}
-              className="mt-1 w-full rounded-lg border border-white/30 bg-blue-900 px-3 py-2 text-sm text-white"
-            >
-              <option value="timeline">Timeline (multiple verses)</option>
-              <option value="single_english">Single verse (English translation only)</option>
-            </select>
-          </label>
-
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-6 space-y-2">
             <button
               type="button"
               disabled={saving}
               onClick={() => void saveSettings()}
-              className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-blue-950 disabled:opacity-60"
+              className="w-full rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-blue-950 disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save settings"}
             </button>
             {saveMessage ? <p className="text-sm text-amber-100">{saveMessage}</p> : null}
           </div>
-        </div>
+        </aside>
 
-        {error ? <p className="text-sm text-amber-200">{error}</p> : null}
+        {/* Main content */}
+        <section className="space-y-6">
+          <div className="rounded-3xl border border-stone-200 bg-white/90 p-6 shadow-sm">
+            <h2 className="text-2xl font-semibold text-stone-900">Usage Dashboard</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              Searches, matches, and translation throughput across sessions.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-stone-500">Search requests</p>
+                <p className="mt-1 text-3xl font-semibold text-stone-900">{metrics?.totalSearchRequests ?? 0}</p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-stone-500">Live requests</p>
+                <p className="mt-1 text-3xl font-semibold text-stone-900">{metrics?.totalLiveRequests ?? 0}</p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-stone-500">Verses matched</p>
+                <p className="mt-1 text-3xl font-semibold text-stone-900">{metrics?.totalVersesMatched ?? 0}</p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-stone-500">Translations requested</p>
+                <p className="mt-1 text-3xl font-semibold text-stone-900">{metrics?.totalTranslationsRequested ?? 0}</p>
+              </div>
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-stone-500">Translations completed</p>
+                <p className="mt-1 text-3xl font-semibold text-stone-900">{metrics?.totalTranslationsSucceeded ?? 0}</p>
+              </div>
+            </div>
+          </div>
 
-        <p className="text-sm text-blue-200/90">
-          <Link href="/" className="font-semibold text-white hover:underline">
-            ← Home
-          </Link>
-        </p>
+          <div className="rounded-3xl border border-stone-200 bg-white/90 p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-stone-900">Template Library</h3>
+            <p className="mt-1 text-sm text-stone-600">
+              Professional and humble display presets for projector and stage use.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {TEMPLATE_OPTIONS.map((option) => (
+                <div
+                  key={option.id}
+                  className={`rounded-2xl border p-4 ${
+                    option.id === displayTemplate
+                      ? "border-orange-300 bg-orange-50"
+                      : "border-stone-200 bg-stone-50"
+                  }`}
+                >
+                  <p className="text-base font-semibold text-stone-900">{option.title}</p>
+                  <p className="mt-1 text-sm text-stone-600">{option.subtitle}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/live" className="rounded-full bg-blue-950 px-4 py-2 font-semibold text-white">
+              Open Live View
+            </Link>
+            <Link href="/" className="font-semibold text-stone-600 hover:text-orange-800">
+              ← Back to home
+            </Link>
+          </div>
+
+          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        </section>
       </div>
     </main>
   );

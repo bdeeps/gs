@@ -13,6 +13,10 @@ export async function GET() {
       {
         settings: {
           enableHindiTranslation: false,
+          displayTemplate: "darbar_focus",
+          verseMode: "single",
+          fontScale: "xlarge",
+          cardStyle: "soft",
           liveDisplayMode: "timeline"
         }
       },

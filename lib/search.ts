@@ -20,38 +20,90 @@ type VerseRow = {
 };
 
 const SEARCH_VERSES_SQL = `
-  WITH ranked AS (
+  WITH semantic_candidates AS (
     SELECT
       id,
-      source,
-      shabad_id,
-      gurmukhi,
-      transliteration,
-      translation,
-      ang,
-      raag,
-      author,
-      order_id,
-      1 - (embedding <=> $1::vector) AS semantic_score,
+      1 - (embedding <=> $1::vector) AS semantic_score
+    FROM verses
+    ORDER BY embedding <=> $1::vector
+    LIMIT $6::int
+  ),
+  lexical_candidates AS (
+    SELECT
+      id,
+      1 - (embedding <=> $1::vector) AS semantic_score
+    FROM verses
+    WHERE
+      (
+        $2::text IS NOT NULL AND (
+          trim(regexp_replace(lower(replace(replace(trim(gurmukhi), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) = $2::text
+          OR trim(regexp_replace(lower(replace(replace(trim(gurmukhi), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) LIKE $4::text ESCAPE '\\'
+          OR position(trim(regexp_replace(lower(replace(replace(trim(gurmukhi), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) in $2::text) > 0
+        )
+      )
+      OR
+      (
+        $3::text IS NOT NULL AND (
+          trim(regexp_replace(lower(replace(replace(trim(COALESCE(transliteration, '')), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) = $3::text
+          OR trim(regexp_replace(lower(replace(replace(trim(COALESCE(transliteration, '')), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) LIKE $5::text ESCAPE '\\'
+          OR position(trim(regexp_replace(lower(replace(replace(trim(COALESCE(transliteration, '')), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) in $3::text) > 0
+        )
+      )
+      OR
+      (
+        $3::text IS NOT NULL AND (
+          trim(regexp_replace(lower(replace(replace(trim(COALESCE(translation, '')), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) = $3::text
+          OR trim(regexp_replace(lower(replace(replace(trim(COALESCE(translation, '')), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) LIKE $5::text ESCAPE '\\'
+          OR position(trim(regexp_replace(lower(replace(replace(trim(COALESCE(translation, '')), '।', ' '), '॥', ' ')), '[[:space:][:punct:]]+', ' ', 'g')) in $3::text) > 0
+        )
+      )
+    LIMIT $7::int
+  ),
+  merged_candidates AS (
+    SELECT * FROM semantic_candidates
+    UNION ALL
+    SELECT * FROM lexical_candidates
+  ),
+  deduped_candidates AS (
+    SELECT
+      id,
+      MAX(semantic_score) AS semantic_score
+    FROM merged_candidates
+    GROUP BY id
+  ),
+  ranked AS (
+    SELECT
+      v.id,
+      v.source,
+      v.shabad_id,
+      v.gurmukhi,
+      v.transliteration,
+      v.translation,
+      v.ang,
+      v.raag,
+      v.author,
+      v.order_id,
+      c.semantic_score,
       trim(regexp_replace(
-        lower(replace(replace(trim(gurmukhi), '।', ' '), '॥', ' ')),
+        lower(replace(replace(trim(v.gurmukhi), '।', ' '), '॥', ' ')),
         '[[:space:][:punct:]]+',
         ' ',
         'g'
       )) AS gurmukhi_norm,
       trim(regexp_replace(
-        lower(replace(replace(trim(COALESCE(transliteration, '')), '।', ' '), '॥', ' ')),
+        lower(replace(replace(trim(COALESCE(v.transliteration, '')), '।', ' '), '॥', ' ')),
         '[[:space:][:punct:]]+',
         ' ',
         'g'
       )) AS transliteration_norm,
       trim(regexp_replace(
-        lower(replace(replace(trim(COALESCE(translation, '')), '।', ' '), '॥', ' ')),
+        lower(replace(replace(trim(COALESCE(v.translation, '')), '।', ' '), '॥', ' ')),
         '[[:space:][:punct:]]+',
         ' ',
         'g'
       )) AS translation_norm
-    FROM verses
+    FROM deduped_candidates c
+    JOIN verses v ON v.id = c.id
   )
   SELECT
     id,
@@ -95,7 +147,7 @@ const SEARCH_VERSES_SQL = `
       ELSE 0
     END DESC,
     semantic_score DESC
-  LIMIT $6::int
+  LIMIT $8::int
 `;
 
 export function normalizeSearchText(value: string) {
@@ -228,7 +280,9 @@ type SearchQueryInputs = {
   normalizedCleanQuery: string | null;
   wildcardAsciiQuery: string | null;
   wildcardCleanQuery: string | null;
-  candidateLimit: number;
+  semanticCandidateLimit: number;
+  lexicalCandidateLimit: number;
+  outputCandidateLimit: number;
 };
 
 type SearchVersesDeps = {
@@ -245,7 +299,9 @@ const defaultSearchDeps: SearchVersesDeps = {
       inputs.normalizedCleanQuery,
       inputs.wildcardAsciiQuery,
       inputs.wildcardCleanQuery,
-      inputs.candidateLimit
+      inputs.semanticCandidateLimit,
+      inputs.lexicalCandidateLimit,
+      inputs.outputCandidateLimit
     ]);
     return rows;
   }
@@ -273,7 +329,9 @@ export async function searchVersesWithDeps(
   }
 
   const embedding = await deps.embedQueryFn(asciiQuery);
-  const candidateLimit = Math.max(safeLimit, 50);
+  const semanticCandidateLimit = Math.max(safeLimit * 20, 120);
+  const lexicalCandidateLimit = 240;
+  const outputCandidateLimit = semanticCandidateLimit + lexicalCandidateLimit;
   const rows = await deps.fetchRowsFn({
     embedding,
     safeLimit,
@@ -281,7 +339,9 @@ export async function searchVersesWithDeps(
     normalizedCleanQuery,
     wildcardAsciiQuery,
     wildcardCleanQuery,
-    candidateLimit
+    semanticCandidateLimit,
+    lexicalCandidateLimit,
+    outputCandidateLimit
   });
 
   const rankedRows = rankVerseCandidates(rows, normalizedAsciiQuery, normalizedCleanQuery).slice(

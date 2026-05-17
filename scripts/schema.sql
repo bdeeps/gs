@@ -55,6 +55,42 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE app_settings
+  ADD COLUMN IF NOT EXISTS display_template TEXT NOT NULL DEFAULT 'darbar_focus';
+
+ALTER TABLE app_settings
+  ADD COLUMN IF NOT EXISTS verse_mode TEXT NOT NULL DEFAULT 'single';
+
+ALTER TABLE app_settings
+  ADD COLUMN IF NOT EXISTS font_scale TEXT NOT NULL DEFAULT 'xlarge';
+
+ALTER TABLE app_settings
+  ADD COLUMN IF NOT EXISTS card_style TEXT NOT NULL DEFAULT 'soft';
+
+ALTER TABLE app_settings
+  DROP CONSTRAINT IF EXISTS app_settings_display_template_check;
+ALTER TABLE app_settings
+  ADD CONSTRAINT app_settings_display_template_check
+  CHECK (display_template IN ('darbar_focus', 'shabad_pair', 'shabad_pair_vertical', 'seva_stream', 'pothi_panel', 'maryada_minimal'));
+
+ALTER TABLE app_settings
+  DROP CONSTRAINT IF EXISTS app_settings_verse_mode_check;
+ALTER TABLE app_settings
+  ADD CONSTRAINT app_settings_verse_mode_check
+  CHECK (verse_mode IN ('single', 'two', 'streaming'));
+
+ALTER TABLE app_settings
+  DROP CONSTRAINT IF EXISTS app_settings_font_scale_check;
+ALTER TABLE app_settings
+  ADD CONSTRAINT app_settings_font_scale_check
+  CHECK (font_scale IN ('large', 'xlarge', 'projection'));
+
+ALTER TABLE app_settings
+  DROP CONSTRAINT IF EXISTS app_settings_card_style_check;
+ALTER TABLE app_settings
+  ADD CONSTRAINT app_settings_card_style_check
+  CHECK (card_style IN ('none', 'soft', 'elevated'));
+
 INSERT INTO app_settings (id)
 VALUES (1)
 ON CONFLICT (id) DO NOTHING;
@@ -73,3 +109,22 @@ CREATE TABLE IF NOT EXISTS app_metrics (
 INSERT INTO app_metrics (id)
 VALUES (1)
 ON CONFLICT (id) DO NOTHING;
+
+/* Repeated-verse translation cache */
+CREATE TABLE IF NOT EXISTS verse_translation_cache (
+  cache_key TEXT PRIMARY KEY,
+  verse_id TEXT,
+  source_lang TEXT NOT NULL,
+  target_lang TEXT NOT NULL,
+  source_text_hash TEXT NOT NULL,
+  translated_text TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS verse_translation_cache_verse_lang_idx
+  ON verse_translation_cache (verse_id, target_lang)
+  WHERE verse_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS verse_translation_cache_source_hash_idx
+  ON verse_translation_cache (source_text_hash, target_lang);

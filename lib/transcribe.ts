@@ -3,6 +3,8 @@ import { TRANSCRIPTION_TIMEOUT_MS } from "./config";
 import { fetchWithTimeout, isAbortError } from "./http";
 
 const SARVAM_TIMEOUT_MS = 20_000;
+const LIVE_SARVAM_TIMEOUT_MS = 9_000;
+const LIVE_WHISPER_TIMEOUT_MS = 16_000;
 
 /**
  * Whisper echoes fragments of its own prompt when it hears silence or noise.
@@ -44,7 +46,7 @@ function cleanMimeType(blob: Blob): Blob {
   return new Blob([blob], { type: raw });
 }
 
-async function transcribeSarvam(audio: Blob): Promise<string> {
+async function transcribeSarvam(audio: Blob, timeoutMs: number): Promise<string> {
   const apiKey = process.env.SARVAM_API_KEY;
   if (!apiKey) return "";
 
@@ -63,7 +65,7 @@ async function transcribeSarvam(audio: Blob): Promise<string> {
         headers: { "api-subscription-key": apiKey },
         body: form
       },
-      SARVAM_TIMEOUT_MS
+      timeoutMs
     );
 
     if (!response.ok) {
@@ -139,7 +141,7 @@ function isUnsupportedLanguageError(status: number, detail: string) {
   return status === 400 && lower.includes("language") && lower.includes("not supported");
 }
 
-function callWhisper(form: FormData) {
+function callWhisper(form: FormData, timeoutMs: number) {
   return fetchWithTimeout(
     "https://api.openai.com/v1/audio/transcriptions",
     {
@@ -147,25 +149,25 @@ function callWhisper(form: FormData) {
       headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: form
     },
-    TRANSCRIPTION_TIMEOUT_MS
+    timeoutMs
   );
 }
 
-async function transcribeWhisper(audio: Blob): Promise<string> {
+async function transcribeWhisper(audio: Blob, timeoutMs: number): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     throw new TranscriptionError("No transcription API key is configured.", 500);
   }
 
   const lang = process.env.OPENAI_TRANSCRIBE_LANGUAGE?.trim() || "pa";
 
-  let response = await callWhisper(buildWhisperForm(audio, lang));
+  let response = await callWhisper(buildWhisperForm(audio, lang), timeoutMs);
   let detail = "";
 
   if (!response.ok) {
     detail = await readOpenAiError(response);
     if (isUnsupportedLanguageError(response.status, detail)) {
       console.warn("[whisper] language hint rejected, retrying without language", lang);
-      response = await callWhisper(buildWhisperForm(audio));
+      response = await callWhisper(buildWhisperForm(audio), timeoutMs);
     }
   }
 
@@ -195,14 +197,30 @@ async function transcribeWhisper(audio: Blob): Promise<string> {
  * unavailable or returns empty.
  */
 export async function transcribeAudio(audio: Blob): Promise<string> {
-  const sarvamText = await transcribeSarvam(audio);
+  const sarvamText = await transcribeSarvam(audio, SARVAM_TIMEOUT_MS);
   if (sarvamText) return sarvamText;
 
   try {
-    return await transcribeWhisper(audio);
+    return await transcribeWhisper(audio, TRANSCRIPTION_TIMEOUT_MS);
   } catch (error) {
     if (error instanceof TranscriptionError) throw error;
     console.error("[transcribe] request failed", error);
+    if (isAbortError(error)) {
+      throw new TranscriptionError("Transcription took too long. Please try again.", 503);
+    }
+    throw new TranscriptionError("Transcription failed. Please try again.", 503);
+  }
+}
+
+export async function transcribeAudioLive(audio: Blob): Promise<string> {
+  const sarvamText = await transcribeSarvam(audio, LIVE_SARVAM_TIMEOUT_MS);
+  if (sarvamText) return sarvamText;
+
+  try {
+    return await transcribeWhisper(audio, LIVE_WHISPER_TIMEOUT_MS);
+  } catch (error) {
+    if (error instanceof TranscriptionError) throw error;
+    console.error("[transcribe-live] request failed", error);
     if (isAbortError(error)) {
       throw new TranscriptionError("Transcription took too long. Please try again.", 503);
     }

@@ -106,6 +106,9 @@ test("searchVerses normalizes unicode query before embedding and row filtering",
     normalizedCleanQuery: string | null;
     wildcardAsciiQuery: string | null;
     wildcardCleanQuery: string | null;
+    semanticCandidateLimit: number;
+    lexicalCandidateLimit: number;
+    outputCandidateLimit: number;
   } | null = null;
 
   const results = await searchVersesWithDeps(unicodeQuery, 1, {
@@ -118,7 +121,10 @@ test("searchVerses normalizes unicode query before embedding and row filtering",
         normalizedAsciiQuery: inputs.normalizedAsciiQuery,
         normalizedCleanQuery: inputs.normalizedCleanQuery,
         wildcardAsciiQuery: inputs.wildcardAsciiQuery,
-        wildcardCleanQuery: inputs.wildcardCleanQuery
+        wildcardCleanQuery: inputs.wildcardCleanQuery,
+        semanticCandidateLimit: inputs.semanticCandidateLimit,
+        lexicalCandidateLimit: inputs.lexicalCandidateLimit,
+        outputCandidateLimit: inputs.outputCandidateLimit
       };
 
       return [
@@ -159,7 +165,10 @@ test("searchVerses normalizes unicode query before embedding and row filtering",
     normalizedAsciiQuery,
     normalizedCleanQuery,
     wildcardAsciiQuery: toWildcardPattern(normalizedAsciiQuery),
-    wildcardCleanQuery: toWildcardPattern(normalizedCleanQuery)
+    wildcardCleanQuery: toWildcardPattern(normalizedCleanQuery),
+    semanticCandidateLimit: 120,
+    lexicalCandidateLimit: 240,
+    outputCandidateLimit: 360
   });
   assert.equal(results.length, 1);
   assert.equal(results[0]?.id, "exact-gurmukhi-ascii");

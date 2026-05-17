@@ -1,5 +1,6 @@
 import type { VerseSearchResult } from "@/lib/types";
 import { toDisplayGurmukhi } from "@/lib/gurbaniScript";
+import type { CardStyle, DisplayTemplate, FontScale } from "@/lib/app-settings";
 
 // "hero" means single-verse centered mode; "timeline" means scrolling list mode
 type DisplayVariant = "timeline" | "hero";
@@ -7,12 +8,18 @@ type DisplayVariant = "timeline" | "hero";
 type StreamingVerseBlockProps = {
   verse: VerseSearchResult;
   variant?: DisplayVariant;
+  template?: DisplayTemplate;
+  fontScale?: FontScale;
+  cardStyle?: CardStyle;
   heardTranscript?: string;
 };
 
 export function StreamingVerseBlock({
   verse,
   variant = "timeline",
+  template = "darbar_focus",
+  fontScale = "xlarge",
+  cardStyle = "soft",
   heardTranscript
 }: StreamingVerseBlockProps) {
   const isHero = variant === "hero";
@@ -24,20 +31,48 @@ export function StreamingVerseBlock({
     verse.author ?? null,
   ].filter(Boolean).join(" · ");
 
+  const heroPunjabiSize =
+    fontScale === "projection"
+      ? "text-4xl sm:text-6xl"
+      : fontScale === "xlarge"
+        ? "text-3xl sm:text-5xl"
+        : "text-2xl sm:text-4xl";
+  const heroEnglishSize =
+    fontScale === "projection"
+      ? "text-3xl sm:text-5xl"
+      : fontScale === "xlarge"
+        ? "text-2xl sm:text-4xl"
+        : "text-xl sm:text-3xl";
+  const timelinePunjabiSize =
+    fontScale === "projection"
+      ? "text-3xl sm:text-5xl"
+      : fontScale === "xlarge"
+        ? "text-2xl sm:text-4xl"
+        : "text-xl sm:text-3xl";
+  const timelineEnglishSize =
+    fontScale === "projection" ? "text-lg sm:text-xl" : fontScale === "xlarge" ? "text-base sm:text-lg" : "text-sm sm:text-base";
+
+  const cardClass =
+    cardStyle === "none"
+      ? ""
+      : cardStyle === "elevated"
+        ? "rounded-2xl border border-orange-100 bg-white shadow-md"
+        : "rounded-2xl border border-orange-100 bg-white/95 shadow-sm";
+
   if (isHero) {
     return (
-      <div className="animate-fade-in mx-auto w-full rounded-2xl border border-orange-100 bg-white/95 px-6 py-10 shadow-md sm:px-12 sm:py-14">
+      <div className={["animate-fade-in mx-auto w-full px-6 py-10 sm:px-12 sm:py-14", cardClass].join(" ").trim()}>
         {/* DB verse — large Punjabi */}
         <p
           lang="pa"
-          className="text-center font-gurmukhi text-3xl leading-snug text-stone-950 sm:text-4xl sm:leading-snug"
+          className={`text-center font-gurmukhi leading-snug text-stone-950 ${heroPunjabiSize}`}
         >
           {gurmukhiDisplay}
         </p>
 
         {/* DB English translation */}
         {verse.translation ? (
-          <p lang="en" className="mt-5 text-center text-xl font-medium leading-snug text-stone-600 sm:text-2xl">
+          <p lang="en" className={`mt-5 text-center font-medium leading-snug text-stone-600 ${heroEnglishSize}`}>
             {verse.translation}
           </p>
         ) : (
@@ -64,16 +99,16 @@ export function StreamingVerseBlock({
   }
 
   return (
-    <div className="animate-fade-in px-4 py-4 sm:py-5">
+    <div className={["animate-fade-in px-4 py-4 sm:py-5", cardClass, template === "seva_stream" ? "bg-transparent shadow-none border-none" : ""].join(" ").trim()}>
       <p
         lang="pa"
-        className="text-center font-gurmukhi text-2xl leading-snug text-stone-950 sm:text-3xl sm:leading-snug md:text-[2.25rem] md:leading-snug"
+        className={`text-center font-gurmukhi leading-snug text-stone-950 ${timelinePunjabiSize}`}
       >
         {gurmukhiDisplay}
       </p>
 
       {verse.translation ? (
-        <p lang="en" className="mt-2 text-center text-sm leading-snug text-stone-500 sm:text-base">
+        <p lang="en" className={`mt-2 text-center leading-snug text-stone-500 ${timelineEnglishSize}`}>
           {verse.translation}
         </p>
       ) : null}

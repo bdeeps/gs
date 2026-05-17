@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
-import type { LiveDisplayMode } from "@/lib/app-settings";
+import type { CardStyle, DisplayTemplate, FontScale, LiveDisplayMode, VerseMode } from "@/lib/app-settings";
 import { pickRecorderMimeType } from "@/lib/recordingMime";
 import type { VerseSearchResult } from "@/lib/types";
 import { AudioWaveform } from "@/components/AudioWaveform";
 import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 
-const FIRST_SEGMENT_MS = 5_000;
-const SEGMENT_MS = 10_000;
+const FIRST_SEGMENT_MS = 2_000;
+const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 4_096;
 const MIN_SCORE_TO_SHOW = 0.15;
 
@@ -42,6 +42,10 @@ type StreamingRecitationScreenProps = {
   open: boolean;
   disabled?: boolean;
   enableHindiTranslation?: boolean;
+  displayTemplate?: DisplayTemplate;
+  verseMode?: VerseMode;
+  fontScale?: FontScale;
+  cardStyle?: CardStyle;
   liveDisplayMode?: LiveDisplayMode;
   copy: StreamingRecitationCopy;
   langClass?: string;
@@ -68,12 +72,20 @@ export function StreamingRecitationScreen({
   open,
   disabled = false,
   enableHindiTranslation = false,
+  displayTemplate = "darbar_focus",
+  verseMode,
+  fontScale = "xlarge",
+  cardStyle = "soft",
   liveDisplayMode = "timeline",
   copy,
   langClass = "",
   onClose
 }: StreamingRecitationScreenProps) {
-  const isSingleEnglishMode = liveDisplayMode === "single_english";
+  const effectiveVerseMode: VerseMode =
+    verseMode ?? (liveDisplayMode === "single_english" ? "single" : "streaming");
+  const isSingleMode = effectiveVerseMode === "single";
+  const isTwoMode = effectiveVerseMode === "two";
+  const isStreamingMode = effectiveVerseMode === "streaming";
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -90,6 +102,8 @@ export function StreamingRecitationScreen({
 
   const beginSegmentRef = useRef<() => void>(() => {});
   const processSegmentRef = useRef<(blob: Blob) => void>(() => {});
+  const processInFlightRef = useRef(false);
+  const queuedBlobRef = useRef<Blob | null>(null);
 
   const [recording, setRecording] = useState(false);
   const [audioSource, setAudioSource] = useState<"mic" | "tab">("mic");
@@ -136,6 +150,8 @@ export function StreamingRecitationScreen({
     }
     recorderRef.current = null;
     chunksRef.current = [];
+    processInFlightRef.current = false;
+    queuedBlobRef.current = null;
     stopMic();
     releaseWakeLock();
     setRecording(false);
@@ -220,9 +236,15 @@ export function StreamingRecitationScreen({
         setTimeout(() => fetchHindi(key, verse.translation!), 0);
       }
       const entry = { key, verse, heardTranscript: heard.trim().slice(0, 400) };
-      return liveDisplayMode === "single_english" ? [entry] : [...prev, entry];
+      if (effectiveVerseMode === "single") {
+        return [entry];
+      }
+      if (effectiveVerseMode === "two") {
+        return [...prev, entry].slice(-2);
+      }
+      return [...prev, entry];
     });
-  }, [enableHindiTranslation, fetchHindi, liveDisplayMode]);
+  }, [effectiveVerseMode, enableHindiTranslation, fetchHindi]);
 
   /* ── live API ────────────────────────────────────────────── */
 
@@ -242,22 +264,40 @@ export function StreamingRecitationScreen({
   const processSegment = useCallback(
     async (blob: Blob) => {
       if (blob.size < MIN_TRANSCRIBE_BYTES) return;
-      const signal = abortRef.current?.signal;
-      if (signal?.aborted) return;
-      setPhase("transcribing");
-      setStreamError(null);
-      try {
-        const { text, results } = await liveSearch(blob, signal);
-        if (signal?.aborted) return;
-        if (text) {
-          setLiveTranscript(text);
-          setPhase("searching");
-          appendIfNewVerse(results?.[0], text);
-        }
-      } catch (e) {
-        if (signal?.aborted) return;
-        setStreamError(e instanceof Error ? e.message : "Transcription error");
+      if (processInFlightRef.current) {
+        // Keep only latest audio to avoid request backlog.
+        queuedBlobRef.current = blob;
+        return;
       }
+
+      processInFlightRef.current = true;
+      let currentBlob: Blob | null = blob;
+
+      while (currentBlob) {
+        const signal = abortRef.current?.signal;
+        if (signal?.aborted) break;
+
+        setPhase("transcribing");
+        setStreamError(null);
+        try {
+          const { text, results } = await liveSearch(currentBlob, signal);
+          if (signal?.aborted) break;
+          if (text) {
+            setLiveTranscript(text);
+            setPhase("searching");
+            appendIfNewVerse(results?.[0], text);
+          }
+        } catch (e) {
+          if (!signal?.aborted) {
+            setStreamError(e instanceof Error ? e.message : "Transcription error");
+          }
+        }
+
+        currentBlob = queuedBlobRef.current;
+        queuedBlobRef.current = null;
+      }
+
+      processInFlightRef.current = false;
       setPhase("idle");
     },
     [liveSearch, appendIfNewVerse]
@@ -432,7 +472,7 @@ export function StreamingRecitationScreen({
       </header>
 
       {/* ── Transcript ticker — hidden in single-verse mode (shown inside card) */}
-      {!isSingleEnglishMode && (recording || liveTranscript) ? (
+      {!isSingleMode && (recording || liveTranscript) ? (
         <div className="shrink-0 border-b border-orange-100/60 bg-amber-50/60 px-4 py-1.5 sm:px-5">
           <p className="truncate text-xs text-stone-600">
             <span className="mr-1.5 font-semibold text-orange-700">Heard:</span>
@@ -468,7 +508,7 @@ export function StreamingRecitationScreen({
               <p className="text-center text-xs text-red-600">{streamError}</p>
             ) : null}
           </div>
-        ) : isSingleEnglishMode ? (
+        ) : isSingleMode ? (
           /* Single-verse hero: always exactly 1 entry, vertically + horizontally centered */
           <div className="flex min-h-full items-center justify-center px-4 py-8">
             <div className="w-full max-w-3xl">
@@ -477,11 +517,46 @@ export function StreamingRecitationScreen({
                   <StreamingVerseBlock
                     verse={entry.verse}
                     variant="hero"
+                    template={displayTemplate}
+                    fontScale={fontScale}
+                    cardStyle={cardStyle}
                     heardTranscript={entry.heardTranscript}
                   />
                 </div>
               ))}
             </div>
+          </div>
+        ) : isTwoMode ? (
+          <div className="mx-auto w-full max-w-6xl px-4 py-6">
+            {/*
+              Use a stable local array so "last item" ref is correct
+              even when the timeline is sliced to two entries.
+            */}
+            {(() => {
+              const twoEntries = timeline.slice(-2);
+              return (
+            <div
+              className={
+                displayTemplate === "shabad_pair" || displayTemplate === "pothi_panel"
+                  ? "grid gap-4 md:grid-cols-2"
+                  : "grid gap-4"
+              }
+            >
+              {twoEntries.map((entry, i) => (
+                <div key={entry.key} ref={i === twoEntries.length - 1 ? lastVerseRef : undefined}>
+                  <StreamingVerseBlock
+                    verse={entry.verse}
+                    variant="timeline"
+                    template={displayTemplate}
+                    fontScale={fontScale}
+                    cardStyle={cardStyle}
+                    heardTranscript={entry.heardTranscript}
+                  />
+                </div>
+              ))}
+            </div>
+              );
+            })()}
           </div>
         ) : (
           /* Timeline mode: scrolling list */
@@ -491,11 +566,14 @@ export function StreamingRecitationScreen({
                 <StreamingVerseBlock
                   verse={entry.verse}
                   variant="timeline"
+                  template={displayTemplate}
+                  fontScale={fontScale}
+                  cardStyle={cardStyle}
                   heardTranscript={entry.heardTranscript}
                 />
               </div>
             ))}
-            <div aria-hidden className="h-[15vh]" />
+            {isStreamingMode ? <div aria-hidden className="h-[15vh]" /> : null}
           </div>
         )}
       </div>
