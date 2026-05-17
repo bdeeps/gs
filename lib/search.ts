@@ -314,7 +314,7 @@ type SearchVersesDeps = {
   embedQueryFn: (input: string) => Promise<number[]>;
   fetchRowsFn: (inputs: SearchQueryInputs) => Promise<VerseRow[]>;
   fetchRowsNearOrderFn: (inputs: SearchNearOrderInputs) => Promise<VerseRow[]>;
-  fetchRowsInAngCohortFn: (inputs: SearchAngCohortInputs) => Promise<VerseRow[]>;
+  fetchRowsInAngLiveWindowFn: (inputs: SearchAngLiveWindowInputs) => Promise<VerseRow[]>;
   countForwardVersesOnAngFn: (
     ang: number,
     afterOrderId: number,
@@ -329,13 +329,24 @@ type SearchNearOrderInputs = {
   afterWindow: number;
 };
 
-type SearchAngCohortInputs = {
-  embedding: number[];
-  anchorAng: number;
-  anchorOrderId: number;
-  excludeVerseId: string | null;
-  forwardLimit?: number;
-};
+/** Live anchored fetch: bounded order-id window on one ang, or first rows after page rollover. */
+export type SearchAngLiveWindowInputs =
+  | {
+      kind: "order_window";
+      embedding: number[];
+      anchorAng: number;
+      orderLowInclusive: number;
+      orderHighInclusive: number;
+      excludeVerseId: string | null;
+      maxRows?: number;
+    }
+  | {
+      kind: "ang_head";
+      embedding: number[];
+      anchorAng: number;
+      excludeVerseId: string | null;
+      rowCap: number;
+    };
 
 const SEARCH_VERSES_NEAR_ORDER_SQL = `
   SELECT
@@ -357,7 +368,7 @@ const SEARCH_VERSES_NEAR_ORDER_SQL = `
   ORDER BY order_id ASC
 `;
 
-const SEARCH_VERSES_ANG_COHORT_SQL = `
+const SEARCH_VERSES_ANG_LIVE_WINDOW_SQL = `
   SELECT
     id,
     source,
@@ -374,10 +385,33 @@ const SEARCH_VERSES_ANG_COHORT_SQL = `
   FROM verses
   WHERE ang = $2::int
     AND order_id IS NOT NULL
-    AND order_id > $3::int
-    AND ($4::text IS NULL OR id::text <> $4::text)
+    AND order_id BETWEEN $3::int AND $4::int
+    AND ($5::text IS NULL OR id::text <> $5::text)
   ORDER BY order_id ASC
-  LIMIT $5::int
+  LIMIT $6::int
+`;
+
+/** First verses on an ang (after rollover with `anchorOrderId === 0`). */
+const SEARCH_VERSES_ANG_HEAD_SQL = `
+  SELECT
+    id,
+    source,
+    shabad_id,
+    gurmukhi,
+    transliteration,
+    translation,
+    ang,
+    raag,
+    author,
+    order_id,
+    1 - (embedding <=> $1::vector) AS semantic_score,
+    0::float8 AS score
+  FROM verses
+  WHERE ang = $2::int
+    AND order_id IS NOT NULL
+    AND ($3::text IS NULL OR id::text <> $3::text)
+  ORDER BY order_id ASC
+  LIMIT $4::int
 `;
 
 const COUNT_FORWARD_ON_ANG_SQL = `
@@ -414,8 +448,14 @@ const FETCH_VERSE_BY_ORDER_SQL = `
 
 export const LIVE_MIN_SCORE = 0.95;
 export const LIVE_MIN_CONTAINMENT_CHARS = 4;
-/** How many forward verses on an ang to load/rank for live cohort search. */
-export const LIVE_ANG_COHORT_FORWARD_LIMIT = 60;
+/** Backward SGGS sequence span (order_id delta) kept on-screen for live cohort. */
+export const LIVE_ANG_ORDER_BACK_SPAN = 48;
+/** Forward SGGS sequence span ahead of anchor kept for live cohort. */
+export const LIVE_ANG_ORDER_FORWARD_SPAN = 200;
+/** Max rows fetched for one anchored live cohort query (narrow ang window). */
+export const LIVE_ANG_LIVE_FETCH_CAP = 120;
+/** Rows from the top of an ang after page rollover (`anchorOrderId === 0`). */
+export const LIVE_ANG_FIRST_PAGE_ROW_CAP = 90;
 /** Max order distance for relaxed live cohort matching on the same ang. */
 export const LIVE_COHORT_NEAR_ORDER = 10;
 /** Semantic floor for the immediate next forward verse during live cohort. */
@@ -513,13 +553,24 @@ const defaultSearchDeps: SearchVersesDeps = {
     ]);
     return rows;
   },
-  async fetchRowsInAngCohortFn(inputs) {
-    const { rows } = await getPool().query<VerseRow>(SEARCH_VERSES_ANG_COHORT_SQL, [
+  async fetchRowsInAngLiveWindowFn(inputs: SearchAngLiveWindowInputs) {
+    if (inputs.kind === "ang_head") {
+      const { rows } = await getPool().query<VerseRow>(SEARCH_VERSES_ANG_HEAD_SQL, [
+        toVectorLiteral(inputs.embedding),
+        inputs.anchorAng,
+        inputs.excludeVerseId,
+        inputs.rowCap
+      ]);
+      return rows;
+    }
+
+    const { rows } = await getPool().query<VerseRow>(SEARCH_VERSES_ANG_LIVE_WINDOW_SQL, [
       toVectorLiteral(inputs.embedding),
       inputs.anchorAng,
-      inputs.anchorOrderId,
+      inputs.orderLowInclusive,
+      inputs.orderHighInclusive,
       inputs.excludeVerseId,
-      inputs.forwardLimit ?? LIVE_ANG_COHORT_FORWARD_LIMIT
+      inputs.maxRows ?? LIVE_ANG_LIVE_FETCH_CAP
     ]);
     return rows;
   },
@@ -715,24 +766,41 @@ export async function searchVersesInAngCohort(
   const normalizedAsciiQuery = normalizeSearchText(asciiQuery) || null;
   const normalizedCleanQuery = normalizeSearchText(cleanQuery) || null;
   const embedding = await deps.embedQueryFn(asciiQuery);
+  const excludeVerseId = input.excludeVerseId?.trim() || null;
 
-  const rows = await deps.fetchRowsInAngCohortFn({
-    embedding,
-    anchorAng,
-    anchorOrderId,
-    excludeVerseId: input.excludeVerseId?.trim() || null,
-    forwardLimit: LIVE_ANG_COHORT_FORWARD_LIMIT
-  });
+  const rows =
+    anchorOrderId <= 0
+      ? await deps.fetchRowsInAngLiveWindowFn({
+          kind: "ang_head",
+          embedding,
+          anchorAng,
+          excludeVerseId,
+          rowCap: LIVE_ANG_FIRST_PAGE_ROW_CAP
+        })
+      : await deps.fetchRowsInAngLiveWindowFn({
+          kind: "order_window",
+          embedding,
+          anchorAng,
+          orderLowInclusive: Math.max(1, anchorOrderId - LIVE_ANG_ORDER_BACK_SPAN),
+          orderHighInclusive: anchorOrderId + LIVE_ANG_ORDER_FORWARD_SPAN,
+          excludeVerseId,
+          maxRows: LIVE_ANG_LIVE_FETCH_CAP
+        });
 
   if (!rows.length) {
     return [];
+  }
+
+  let rankProximityAnchor = anchorOrderId;
+  if (anchorOrderId <= 0 && rows.length) {
+    rankProximityAnchor = (rows[0].order_id ?? 1) - 1;
   }
 
   const ranked = rankCohortCandidates(
     rows,
     normalizedAsciiQuery,
     normalizedCleanQuery,
-    anchorOrderId
+    rankProximityAnchor
   );
 
   const lexicalPool = ranked.filter((row) => row.lexicalTier >= 1);
@@ -766,7 +834,7 @@ export async function searchVersesLiveAnchored(
   },
   deps: SearchVersesDeps = defaultSearchDeps
 ): Promise<{ results: VerseSearchResult[]; mode: LiveAnchoredSearchMode }> {
-  const maxAngAdvance = 5;
+  const maxAngAdvance = 18;
   let ang = Math.floor(anchor.anchorAng);
   let orderId = Math.floor(anchor.anchorOrderId);
   let excludeVerseId = anchor.excludeVerseId?.trim() || null;

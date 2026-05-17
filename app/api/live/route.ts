@@ -4,10 +4,8 @@ import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import {
   isAcceptableLiveMatch,
   LIVE_MIN_SCORE,
-  pickBestCohortMatch,
   searchVersesLive,
-  searchVersesLiveAnchored,
-  searchVersesNearOrder
+  searchVersesLiveAnchored
 } from "@/lib/search";
 import { transcribeAudioLive, TranscriptionError } from "@/lib/transcribe";
 import type { VerseSearchResult } from "@/lib/types";
@@ -36,6 +34,45 @@ function pickBestLiveResult(candidates: VerseSearchResult[]): VerseSearchResult[
     return [];
   }
   return [acceptable[0]];
+}
+
+async function resolveLiveSearch(
+  query: string,
+  ctx: {
+    canUseAnchoredAngSearch: boolean;
+    lastMatchedOrderId: number | null;
+    lastMatchedAng: number | null;
+    lastMatchedVerseId: string | null;
+    lastMatchedScore: number | null;
+  }
+): Promise<{ candidates: VerseSearchResult[]; mode: string }> {
+  if (
+    ctx.canUseAnchoredAngSearch &&
+    typeof ctx.lastMatchedAng === "number" &&
+    typeof ctx.lastMatchedOrderId === "number"
+  ) {
+    const anchored = await searchVersesLiveAnchored(query, {
+      anchorAng: ctx.lastMatchedAng,
+      anchorOrderId: ctx.lastMatchedOrderId,
+      excludeVerseId: ctx.lastMatchedVerseId,
+      limit: 5
+    });
+    let picked = pickBestLiveResult(anchored.results);
+    if (picked.length) {
+      return { candidates: picked, mode: anchored.mode };
+    }
+    const global = await searchVersesLive(query, 3);
+    picked = pickBestLiveResult(global);
+    if (picked.length) {
+      console.log("[live] narrowed ang window — global re-locate fallback");
+      return { candidates: picked, mode: `${anchored.mode}-global-fallback` };
+    }
+    return { candidates: [], mode: anchored.mode };
+  }
+
+  const global = await searchVersesLive(query, 3);
+  const picked = pickBestLiveResult(global);
+  return { candidates: picked, mode: picked.length ? "global-bootstrap" : "global-bootstrap-empty" };
 }
 
 /**
@@ -103,55 +140,23 @@ export async function POST(request: Request) {
 
     try {
       const searchStartedAt = Date.now();
-      const canUseAngCohort =
-        typeof lastMatchedOrderId === "number" &&
-        Number.isInteger(lastMatchedOrderId) &&
-        lastMatchedOrderId >= 0 &&
+      const canUseAnchoredAngSearch =
         typeof lastMatchedAng === "number" &&
         Number.isInteger(lastMatchedAng) &&
         lastMatchedAng > 0 &&
+        typeof lastMatchedOrderId === "number" &&
+        Number.isInteger(lastMatchedOrderId) &&
+        lastMatchedOrderId >= 0 &&
         typeof lastMatchedScore === "number" &&
         lastMatchedScore >= LIVE_MIN_SCORE;
 
-      let candidates: VerseSearchResult[] = [];
-      let searchMode = "global";
-
-      if (canUseAngCohort) {
-        const anchored = await searchVersesLiveAnchored(query, {
-          anchorAng: lastMatchedAng,
-          anchorOrderId: lastMatchedOrderId,
-          excludeVerseId: lastMatchedVerseId,
-          limit: 5
-        });
-        candidates = pickBestLiveResult(anchored.results);
-        searchMode = anchored.mode;
-      } else if (
-        typeof lastMatchedOrderId === "number" &&
-        lastMatchedOrderId > 0 &&
-        typeof lastMatchedScore === "number" &&
-        lastMatchedScore >= LIVE_MIN_SCORE
-      ) {
-        const sequential = await searchVersesNearOrder(query, {
-          anchorOrderId: lastMatchedOrderId,
-          limit: 5,
-          beforeWindow: 0,
-          afterWindow: 40
-        });
-        const sequentialPick = pickBestCohortMatch(
-          sequential,
-          lastMatchedOrderId,
-          lastMatchedVerseId,
-          query
-        );
-        if (sequentialPick.length) {
-          candidates = pickBestLiveResult(sequentialPick);
-          searchMode = "order-cohort";
-        }
-      } else {
-        const global = await searchVersesLive(query, 3);
-        candidates = pickBestLiveResult(global);
-        searchMode = "global";
-      }
+      const { candidates, mode: searchMode } = await resolveLiveSearch(query, {
+        canUseAnchoredAngSearch,
+        lastMatchedOrderId,
+        lastMatchedAng,
+        lastMatchedVerseId,
+        lastMatchedScore
+      });
 
       const results = candidates.slice(0, 1);
       const searchMs = Date.now() - searchStartedAt;

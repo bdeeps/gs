@@ -30,7 +30,7 @@ test("ang cohort ranks next verse on same page with best lexical match", async (
       async countForwardVersesOnAngFn() {
         return 0;
       },
-      async fetchRowsInAngCohortFn() {
+      async fetchRowsInAngLiveWindowFn() {
         return [
           {
             id: "line-101",
@@ -225,7 +225,7 @@ test("ang cohort considers full forward pool, not only top semantic rank", async
       async countForwardVersesOnAngFn() {
         return 0;
       },
-      async fetchRowsInAngCohortFn() {
+      async fetchRowsInAngLiveWindowFn() {
         return rows;
       },
       async fetchVerseByOrderFn() {
@@ -265,7 +265,7 @@ test("live anchored search advances to next ang when current ang has no forward 
         }
         return 1;
       },
-      async fetchRowsInAngCohortFn(inputs) {
+      async fetchRowsInAngLiveWindowFn(inputs) {
         cohortCalls += 1;
         if (inputs.anchorAng === 9) {
           return [];
