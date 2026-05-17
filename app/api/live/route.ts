@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MAX_AUDIO_BYTES } from "@/lib/config";
+import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
 import { searchVerses } from "@/lib/search";
 import { transcribeAudio, TranscriptionError } from "@/lib/transcribe";
 import type { VerseSearchResult } from "@/lib/types";
@@ -52,11 +52,27 @@ export async function POST(request: Request) {
     }
 
     console.log("[live] transcription:", text.slice(0, 120));
-    const results = await searchVerses(text, 1);
-    const topScore = results[0]?.score ?? 0;
-    console.log("[live] top result score:", topScore.toFixed(4), "verse:", results[0]?.gurmukhi?.slice(0, 60) ?? "none");
+    const query = trimForSearch(text);
+    if (!query) {
+      return NextResponse.json({ text, results: [] as VerseSearchResult[] });
+    }
 
-    return NextResponse.json({ text, results });
+    try {
+      const results = await searchVerses(query, 1);
+      const topScore = results[0]?.score ?? 0;
+      console.log(
+        "[live] top result score:",
+        topScore.toFixed(4),
+        "verse:",
+        results[0]?.gurmukhi?.slice(0, 60) ?? "none"
+      );
+
+      return NextResponse.json({ text, results });
+    } catch (searchError) {
+      console.error("[live] search failed after transcription:", searchError);
+      // Keep session alive for tab audio/music even if embedding/search backend is flaky.
+      return NextResponse.json({ text, results: [] as VerseSearchResult[] });
+    }
   } catch (error) {
     if (error instanceof TranscriptionError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

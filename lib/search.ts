@@ -66,27 +66,27 @@ const SEARCH_VERSES_SQL = `
     order_id,
     semantic_score,
     CASE
-      WHEN $3 IS NOT NULL AND gurmukhi_norm = $3 THEN 1.0
-      WHEN $4 IS NOT NULL AND transliteration_norm = $4 THEN 1.0
-      WHEN $4 IS NOT NULL AND translation_norm = $4 THEN 0.98
-      WHEN $5 IS NOT NULL AND gurmukhi_norm LIKE $5 ESCAPE '\\' THEN 0.97
-      WHEN $6 IS NOT NULL AND transliteration_norm LIKE $6 ESCAPE '\\' THEN 0.96
-      WHEN $6 IS NOT NULL AND translation_norm LIKE $6 ESCAPE '\\' THEN 0.94
+      WHEN $2 IS NOT NULL AND gurmukhi_norm = $2 THEN 1.0
+      WHEN $3 IS NOT NULL AND transliteration_norm = $3 THEN 1.0
+      WHEN $3 IS NOT NULL AND translation_norm = $3 THEN 0.98
+      WHEN $4 IS NOT NULL AND gurmukhi_norm LIKE $4 ESCAPE '\\' THEN 0.97
+      WHEN $5 IS NOT NULL AND transliteration_norm LIKE $5 ESCAPE '\\' THEN 0.96
+      WHEN $5 IS NOT NULL AND translation_norm LIKE $5 ESCAPE '\\' THEN 0.94
       ELSE semantic_score
     END AS score
   FROM ranked
   ORDER BY
     CASE
-      WHEN $3 IS NOT NULL AND gurmukhi_norm = $3 THEN 6
-      WHEN $4 IS NOT NULL AND transliteration_norm = $4 THEN 5
-      WHEN $4 IS NOT NULL AND translation_norm = $4 THEN 4
-      WHEN $5 IS NOT NULL AND gurmukhi_norm LIKE $5 ESCAPE '\\' THEN 3
-      WHEN $6 IS NOT NULL AND transliteration_norm LIKE $6 ESCAPE '\\' THEN 2
-      WHEN $6 IS NOT NULL AND translation_norm LIKE $6 ESCAPE '\\' THEN 1
+      WHEN $2 IS NOT NULL AND gurmukhi_norm = $2 THEN 6
+      WHEN $3 IS NOT NULL AND transliteration_norm = $3 THEN 5
+      WHEN $3 IS NOT NULL AND translation_norm = $3 THEN 4
+      WHEN $4 IS NOT NULL AND gurmukhi_norm LIKE $4 ESCAPE '\\' THEN 3
+      WHEN $5 IS NOT NULL AND transliteration_norm LIKE $5 ESCAPE '\\' THEN 2
+      WHEN $5 IS NOT NULL AND translation_norm LIKE $5 ESCAPE '\\' THEN 1
       ELSE 0
     END DESC,
     semantic_score DESC
-  LIMIT $7
+  LIMIT $6
 `;
 
 export function normalizeSearchText(value: string) {
@@ -187,7 +187,6 @@ const defaultSearchDeps: SearchVersesDeps = {
   async fetchRowsFn(inputs) {
     const { rows } = await getPool().query<VerseRow>(SEARCH_VERSES_SQL, [
       toVectorLiteral(inputs.embedding),
-      inputs.safeLimit,
       inputs.normalizedAsciiQuery,
       inputs.normalizedCleanQuery,
       inputs.wildcardAsciiQuery,
