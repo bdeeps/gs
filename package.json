@@ -11,6 +11,7 @@
     "start": "bash scripts/start-with-embedding.sh",
     "start:web": "next start",
     "lint": "eslint .",
+    "test": "NODE_ENV=test tsx --test tests/*.test.ts",
     "db:schema": "node scripts/apply-schema.mjs",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:sggs": "SEED_SOURCE_ID=1 tsx scripts/seed.ts"
