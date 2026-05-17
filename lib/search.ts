@@ -450,7 +450,7 @@ const FETCH_VERSE_BY_ORDER_SQL = `
   LIMIT 1
 `;
 
-export const LIVE_MIN_SCORE = 0.95;
+export const LIVE_MIN_SCORE = 0.84;
 export const LIVE_MIN_CONTAINMENT_CHARS = 4;
 /** Backward SGGS sequence span (order_id delta) kept on-screen for live cohort. */
 export const LIVE_ANG_ORDER_BACK_SPAN = 48;
@@ -463,7 +463,7 @@ export const LIVE_ANG_FIRST_PAGE_ROW_CAP = 90;
 /** Max order distance for relaxed live cohort matching on the same ang. */
 export const LIVE_COHORT_NEAR_ORDER = 10;
 /** Semantic floor for the immediate next forward verse during live cohort. */
-export const LIVE_COHORT_SEMANTIC_MIN = 0.88;
+export const LIVE_COHORT_SEMANTIC_MIN = 0.80;
 const LIVE_COHORT_MIN_TOKEN_OVERLAP = 2;
 
 export function countGurmukhiTokenOverlap(gurmukhi: string, query: string): number {

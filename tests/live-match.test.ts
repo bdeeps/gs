@@ -78,7 +78,7 @@ test("rejects weak semantic-only matches", () => {
       raag: null,
       author: null,
       orderId: 4,
-      score: 0.88,
+      score: 0.80,
       lexicalTier: 0
     }),
     false

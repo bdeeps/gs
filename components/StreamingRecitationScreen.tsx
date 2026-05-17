@@ -12,7 +12,7 @@ import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 const FIRST_SEGMENT_MS = 3_000;
 const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 384;
-const MIN_SCORE_TO_SHOW = 0.95;
+const MIN_SCORE_TO_SHOW = 0.84;
 const ROLLING_TRANSCRIPT_MAX_CHARS = 120;
 
 function shouldShowLiveVerse(verse: VerseSearchResult | undefined): verse is VerseSearchResult {
