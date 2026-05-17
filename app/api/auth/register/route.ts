@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
-import { getRequestOrigin } from "@/lib/app-origin";
-import { getPool } from "@/lib/db";
-import { findAccountByEmail, insertGurudwaraAccount } from "@/lib/gurudwara-accounts";
-import { PlinthError, sendEmailVerificationLink } from "@/lib/plinth";
+import { findAccountByEmail, insertGurudwaraAccount, markEmailVerified } from "@/lib/gurudwara-accounts";
 
 export const runtime = "nodejs";
 
@@ -64,20 +61,10 @@ export async function POST(request: Request) {
     throw e;
   }
 
-  const origin = getRequestOrigin(request);
-  const verifyUrl = `${origin}/api/auth/verify-email?token=${encodeURIComponent(verificationToken)}`;
-  const firstName = gurudwaraName.slice(0, 80);
-
-  try {
-    await sendEmailVerificationLink(account.email, firstName, verifyUrl);
-  } catch (err) {
-    await getPool().query(`DELETE FROM gurudwara_accounts WHERE id = $1::uuid`, [account.id]);
-    const message = err instanceof PlinthError ? err.message : "Could not send verification email.";
-    return NextResponse.json({ error: message }, { status: 503 });
-  }
+  await markEmailVerified(account.id);
 
   return NextResponse.json({
     ok: true,
-    message: "Check your email for a link to confirm your address."
+    message: "Account created. You can sign in immediately."
   });
 }

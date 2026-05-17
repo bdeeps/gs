@@ -13,16 +13,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [resendMsg, setResendMsg] = useState<string | null>(null);
 
-  const verified = search.get("verified") === "1";
-  const verifyInvalid = search.get("verify") === "invalid";
   const sessionExpired = search.get("session") === "expired";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setResendMsg(null);
     setBusy(true);
     try {
       const res = await fetch("/api/auth/login", {
@@ -42,42 +38,12 @@ function LoginForm() {
     }
   }
 
-  async function resendVerification() {
-    setResendMsg(null);
-    setError(null);
-    if (!email.trim()) {
-      setError("Enter your email above, then tap resend.");
-      return;
-    }
-    const res = await fetch("/api/auth/resend-verification", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
-    });
-    const data = (await res.json()) as { error?: string; message?: string };
-    if (!res.ok) {
-      setError(data.error || "Could not resend.");
-      return;
-    }
-    setResendMsg(data.message || "If this email is registered and unverified, we sent a new link.");
-  }
-
   return (
     <div className="mx-auto max-w-md rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-saffron backdrop-blur">
       <p className="font-gurmukhi text-xl font-semibold text-orange-950">ਸਾਈਨ ਇਨ</p>
       <h1 className="mt-2 text-2xl font-bold text-stone-900">Sign in</h1>
       <p className="mt-2 text-sm text-stone-600">Gurudwara operator access to the dashboard.</p>
 
-      {verified ? (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-          Your email is confirmed. You may sign in below.
-        </p>
-      ) : null}
-      {verifyInvalid ? (
-        <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-          That confirmation link is no longer valid. You may request a new message below.
-        </p>
-      ) : null}
       {sessionExpired ? (
         <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
           Your session has ended. Please sign in again.
@@ -108,7 +74,6 @@ function LoginForm() {
           />
         </label>
         {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
-        {resendMsg ? <p className="text-sm font-medium text-emerald-800">{resendMsg}</p> : null}
         <button
           type="submit"
           disabled={busy}
@@ -119,13 +84,6 @@ function LoginForm() {
       </form>
 
       <div className="mt-4 flex flex-col gap-2 text-center text-sm">
-        <button
-          type="button"
-          onClick={() => void resendVerification()}
-          className="font-semibold text-orange-800 underline-offset-2 hover:underline"
-        >
-          Resend confirmation email
-        </button>
         <Link href="/forgot-password" className="font-semibold text-stone-600 hover:text-orange-800">
           Forgot password?
         </Link>

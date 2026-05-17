@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { filenameForAudioBlob } from "@/lib/audioUpload";
+import type { LiveDisplayMode } from "@/lib/app-settings";
 import { pickRecorderMimeType } from "@/lib/recordingMime";
 import type { VerseSearchResult } from "@/lib/types";
 import { AudioWaveform } from "@/components/AudioWaveform";
@@ -40,6 +41,8 @@ type TimelineEntry = {
 type StreamingRecitationScreenProps = {
   open: boolean;
   disabled?: boolean;
+  enableHindiTranslation?: boolean;
+  liveDisplayMode?: LiveDisplayMode;
   copy: StreamingRecitationCopy;
   langClass?: string;
   onClose: () => void;
@@ -64,6 +67,8 @@ const INSTRUCTIONS = [
 export function StreamingRecitationScreen({
   open,
   disabled = false,
+  enableHindiTranslation = false,
+  liveDisplayMode = "timeline",
   copy,
   langClass = "",
   onClose
@@ -210,12 +215,13 @@ export function StreamingRecitationScreen({
     setTimeline((prev) => {
       if (prev[prev.length - 1]?.verse.id === verse.id) return prev;
       const key = `${verse.id}-${prev.length}-${Date.now()}`;
-      if (verse.translation && !verse.translationHi) {
+      if (enableHindiTranslation && verse.translation && !verse.translationHi) {
         setTimeout(() => fetchHindi(key, verse.translation!), 0);
       }
-      return [...prev, { key, verse, heardTranscript: heard.trim().slice(0, 400) }];
+      const entry = { key, verse, heardTranscript: heard.trim().slice(0, 400) };
+      return liveDisplayMode === "single_english" ? [entry] : [...prev, entry];
     });
-  }, [fetchHindi]);
+  }, [enableHindiTranslation, fetchHindi, liveDisplayMode]);
 
   /* ── live API ────────────────────────────────────────────── */
 
@@ -460,7 +466,10 @@ export function StreamingRecitationScreen({
           <div className="mx-auto w-full max-w-3xl">
             {timeline.map((entry, i) => (
               <div key={entry.key} ref={i === timeline.length - 1 ? lastVerseRef : undefined}>
-                <StreamingVerseBlock verse={entry.verse} />
+                <StreamingVerseBlock
+                  verse={entry.verse}
+                  englishOnly={liveDisplayMode === "single_english"}
+                />
               </div>
             ))}
             <div aria-hidden className="h-[15vh]" />

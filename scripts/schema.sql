@@ -46,3 +46,15 @@ CREATE INDEX IF NOT EXISTS gurudwara_accounts_verification_token_idx
 CREATE INDEX IF NOT EXISTS gurudwara_accounts_password_reset_token_idx
   ON gurudwara_accounts (password_reset_token)
   WHERE password_reset_token IS NOT NULL;
+
+/* Runtime admin settings (single row) */
+CREATE TABLE IF NOT EXISTS app_settings (
+  id SMALLINT PRIMARY KEY CHECK (id = 1),
+  enable_hindi_translation BOOLEAN NOT NULL DEFAULT FALSE,
+  live_display_mode TEXT NOT NULL DEFAULT 'timeline' CHECK (live_display_mode IN ('timeline', 'single_english')),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO app_settings (id)
+VALUES (1)
+ON CONFLICT (id) DO NOTHING;

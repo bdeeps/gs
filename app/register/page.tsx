@@ -38,13 +38,12 @@ export default function RegisterPage() {
         <p className="font-gurmukhi text-xl font-semibold text-orange-950">ਗੁਰਦੁਆਰਾ ਖਾਤਾ</p>
         <h1 className="mt-2 text-2xl font-bold text-stone-900">Register Gurudwara account</h1>
         <p className="mt-2 text-sm leading-relaxed text-stone-600">
-          For sevadars who present Gurbani during diwan. We will send a secure link so you may confirm your email
-          before the account is used.
+          For sevadars who present Gurbani during diwan. Account access is enabled immediately after sign-up.
         </p>
 
         {done ? (
           <p className="mt-6 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-            Please check your email for the confirmation link. You may close this window.
+            Account created successfully. You can sign in now.
           </p>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
