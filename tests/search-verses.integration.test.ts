@@ -196,7 +196,7 @@ test("searchVerses normalizes unicode query before embedding and row filtering",
     }
   });
 
-  assert.equal(capturedEmbeddingInput, asciiQuery);
+  assert.equal(capturedEmbeddingInput, `${unicodeQuery}\n${asciiQuery}`);
   assert.deepEqual(capturedFetchInputs, {
     normalizedAsciiQuery,
     normalizedCleanQuery,

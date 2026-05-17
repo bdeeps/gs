@@ -1,6 +1,10 @@
 const GURMUKHI_RANGE = /[\u0A00-\u0A7F]/;
 const ASCII_LETTER = /[A-Za-z]/;
 
+export function hasGurmukhi(value: string): boolean {
+  return GURMUKHI_RANGE.test(value);
+}
+
 /**
  * Mapping from ShabadOS ASCII (AnmolLipi / GurbaniAkhar) to Unicode Gurmukhi.
  * Source: https://github.com/shabados/gurmukhi-utils  (ASCII_TO_SL_REPLACEMENTS)

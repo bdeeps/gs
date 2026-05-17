@@ -1,8 +1,21 @@
 import { DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT } from "./config";
 import { getPool, toVectorLiteral } from "./db";
 import { embedQuery } from "./embed";
-import { toAsciiGurmukhi } from "./gurbaniScript";
+import { toAsciiGurmukhi, hasGurmukhi } from "./gurbaniScript";
 import type { VerseSearchResult } from "./types";
+
+/**
+ * Build the text sent to the embedding model for a search query.
+ * DB passages were embedded as "passage: <unicode gurmukhi>\n<ascii>\n<translit>\n...".
+ * For queries that contain Gurmukhi Unicode (from STT), include both the original
+ * Unicode and the ASCII conversion so the multilingual E5 model can match on either.
+ */
+function buildEmbedInput(cleanQuery: string, asciiQuery: string): string {
+  if (asciiQuery !== cleanQuery && hasGurmukhi(cleanQuery)) {
+    return `${cleanQuery}\n${asciiQuery}`;
+  }
+  return asciiQuery;
+}
 
 type VerseRow = {
   id: string;
@@ -596,18 +609,17 @@ export async function searchVersesWithDeps(
   const normalizedCleanQuery = normalizeSearchText(cleanQuery) || null;
   const wildcardAsciiQuery = toWildcardPattern(normalizedAsciiQuery);
   const wildcardCleanQuery = toWildcardPattern(normalizedCleanQuery);
+  const embedInput = buildEmbedInput(cleanQuery, asciiQuery);
 
   if (process.env.NODE_ENV !== "test") {
     if (asciiQuery !== cleanQuery) {
       console.log("[search] converted query:", cleanQuery.slice(0, 80), "→", asciiQuery.slice(0, 80));
     }
+    console.log("[search] embedInput:", embedInput.slice(0, 120), embedInput.includes("\n") ? "(dual-script)" : "(ascii-only)");
     console.log("[search] normalizedAscii:", (normalizedAsciiQuery ?? "NULL").slice(0, 100));
-    console.log("[search] normalizedClean:", (normalizedCleanQuery ?? "NULL").slice(0, 100));
-    console.log("[search] wildcardAscii:", (wildcardAsciiQuery ?? "NULL").slice(0, 100));
   }
-
   const embedStart = Date.now();
-  const embedding = await deps.embedQueryFn(asciiQuery);
+  const embedding = await deps.embedQueryFn(embedInput);
   const embedMs = Date.now() - embedStart;
   const semanticCandidateLimit = Math.max(safeLimit * 20, 120);
   const lexicalCandidateLimit = 240;
@@ -830,7 +842,8 @@ export async function searchVersesInAngCohort(
   const asciiQuery = toAsciiGurmukhi(cleanQuery);
   const normalizedAsciiQuery = normalizeSearchText(asciiQuery) || null;
   const normalizedCleanQuery = normalizeSearchText(cleanQuery) || null;
-  const embedding = await deps.embedQueryFn(asciiQuery);
+  const embedInput = buildEmbedInput(cleanQuery, asciiQuery);
+  const embedding = await deps.embedQueryFn(embedInput);
   const excludeVerseId = input.excludeVerseId?.trim() || null;
 
   const windowKind = anchorOrderId <= 0 ? "ang_head" : "order_window";
