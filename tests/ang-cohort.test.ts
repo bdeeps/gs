@@ -112,6 +112,97 @@ test("pickBestCohortMatch skips anchor verse and requires forward order", () => 
   assert.equal(picked[0]?.id, "line-101");
 });
 
+test("pickBestCohortMatch prefers earliest forward acceptable verse", () => {
+  const picked = pickBestCohortMatch(
+    [
+      {
+        id: "line-103",
+        source: "sggs",
+        shabadId: null,
+        gurmukhi: "later line",
+        transliteration: null,
+        translation: null,
+        translationHi: null,
+        ang: 9,
+        raag: null,
+        author: null,
+        orderId: 103,
+        score: 1,
+        lexicalTier: 6
+      },
+      {
+        id: "line-101",
+        source: "sggs",
+        shabadId: null,
+        gurmukhi: "next line",
+        transliteration: null,
+        translation: null,
+        translationHi: null,
+        ang: 9,
+        raag: null,
+        author: null,
+        orderId: 101,
+        score: 0.97,
+        lexicalTier: 3
+      }
+    ],
+    100,
+    "line-100"
+  );
+
+  assert.equal(picked[0]?.id, "line-101");
+});
+
+test("ang cohort considers full forward pool, not only top semantic rank", async () => {
+  const rows = Array.from({ length: 8 }, (_, index) => ({
+    id: `line-${101 + index}`,
+    source: "sggs",
+    shabad_id: "s1",
+    gurmukhi: index === 7 ? "nwnk nwm cVHdI klw" : "unrelated filler text",
+    transliteration: "filler",
+    translation: "filler",
+    ang: 9,
+    raag: null,
+    author: null,
+    order_id: 101 + index,
+    semantic_score: 0.99 - index * 0.01,
+    score: 0.99 - index * 0.01
+  }));
+
+  const results = await searchVersesInAngCohort(
+    "nwm cVHdI klw",
+    {
+      anchorAng: 9,
+      anchorOrderId: 100,
+      excludeVerseId: "line-100",
+      limit: 1
+    },
+    {
+      async embedQueryFn() {
+        return [0.1, 0.2, 0.3];
+      },
+      async fetchRowsFn() {
+        return [];
+      },
+      async fetchRowsNearOrderFn() {
+        return [];
+      },
+      async countForwardVersesOnAngFn() {
+        return 0;
+      },
+      async fetchRowsInAngCohortFn() {
+        return rows;
+      },
+      async fetchVerseByOrderFn() {
+        return null;
+      }
+    }
+  );
+
+  const picked = pickBestCohortMatch(results, 100, "line-100");
+  assert.equal(picked[0]?.id, "line-108");
+});
+
 test("live anchored search advances to next ang when current ang has no forward verses", async () => {
   let cohortCalls = 0;
 

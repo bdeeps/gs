@@ -306,7 +306,11 @@ type SearchVersesDeps = {
   fetchRowsFn: (inputs: SearchQueryInputs) => Promise<VerseRow[]>;
   fetchRowsNearOrderFn: (inputs: SearchNearOrderInputs) => Promise<VerseRow[]>;
   fetchRowsInAngCohortFn: (inputs: SearchAngCohortInputs) => Promise<VerseRow[]>;
-  countForwardVersesOnAngFn: (ang: number, afterOrderId: number) => Promise<number>;
+  countForwardVersesOnAngFn: (
+    ang: number,
+    afterOrderId: number,
+    limit?: number
+  ) => Promise<number>;
   fetchVerseByOrderFn: (orderId: number) => Promise<VerseRow | null>;
 };
 
@@ -321,6 +325,7 @@ type SearchAngCohortInputs = {
   anchorAng: number;
   anchorOrderId: number;
   excludeVerseId: string | null;
+  forwardLimit?: number;
 };
 
 const SEARCH_VERSES_NEAR_ORDER_SQL = `
@@ -363,14 +368,20 @@ const SEARCH_VERSES_ANG_COHORT_SQL = `
     AND order_id > $3::int
     AND ($4::text IS NULL OR id::text <> $4::text)
   ORDER BY order_id ASC
+  LIMIT $5::int
 `;
 
 const COUNT_FORWARD_ON_ANG_SQL = `
   SELECT COUNT(*)::int AS count
-  FROM verses
-  WHERE ang = $1::int
-    AND order_id IS NOT NULL
-    AND order_id > $2::int
+  FROM (
+    SELECT 1
+    FROM verses
+    WHERE ang = $1::int
+      AND order_id IS NOT NULL
+      AND order_id > $2::int
+    ORDER BY order_id ASC
+    LIMIT COALESCE($3::int, 2147483647)
+  ) AS forward_window
 `;
 
 const FETCH_VERSE_BY_ORDER_SQL = `
@@ -394,6 +405,8 @@ const FETCH_VERSE_BY_ORDER_SQL = `
 
 export const LIVE_MIN_SCORE = 0.95;
 export const LIVE_MIN_CONTAINMENT_CHARS = 4;
+/** How many forward verses on an ang to load/rank for live cohort search. */
+export const LIVE_ANG_COHORT_FORWARD_LIMIT = 60;
 
 function rowToVerseResult(
   row: VerseRow & { lexicalTier?: number; displayScore?: number },
@@ -453,14 +466,16 @@ const defaultSearchDeps: SearchVersesDeps = {
       toVectorLiteral(inputs.embedding),
       inputs.anchorAng,
       inputs.anchorOrderId,
-      inputs.excludeVerseId
+      inputs.excludeVerseId,
+      inputs.forwardLimit ?? LIVE_ANG_COHORT_FORWARD_LIMIT
     ]);
     return rows;
   },
-  async countForwardVersesOnAngFn(ang, afterOrderId) {
+  async countForwardVersesOnAngFn(ang, afterOrderId, limit) {
     const { rows } = await getPool().query<{ count: number }>(COUNT_FORWARD_ON_ANG_SQL, [
       ang,
-      afterOrderId
+      afterOrderId,
+      limit ?? null
     ]);
     return rows[0]?.count ?? 0;
   },
@@ -566,22 +581,36 @@ function rankCohortCandidates(
   return ranked;
 }
 
+function isCohortAcceptableMatch(verse: VerseSearchResult): boolean {
+  if (verse.sequentialAdvance) return false;
+  return (verse.lexicalTier ?? 0) >= 3 || verse.score >= LIVE_MIN_SCORE;
+}
+
 export function pickBestCohortMatch(
   candidates: VerseSearchResult[],
   anchorOrderId: number,
   anchorVerseId?: string | null
 ): VerseSearchResult[] {
-  const matched = candidates.filter(
+  const forward = candidates.filter(
     (verse) =>
       !verse.sequentialAdvance &&
       verse.id !== anchorVerseId &&
-      (verse.orderId ?? 0) > anchorOrderId &&
-      ((verse.lexicalTier ?? 0) >= 3 || verse.score >= LIVE_MIN_SCORE)
+      (verse.orderId ?? 0) > anchorOrderId
   );
-  if (!matched.length) {
-    return [];
+
+  const matched = forward
+    .filter(isCohortAcceptableMatch)
+    .sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0));
+  if (matched.length) {
+    return [matched[0]];
   }
-  return [matched[0]];
+
+  const nextByOrder = forward.sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0))[0];
+  if (nextByOrder && nextByOrder.score >= LIVE_MIN_SCORE) {
+    return [nextByOrder];
+  }
+
+  return [];
 }
 
 export async function searchVersesInAngCohort(
@@ -618,7 +647,8 @@ export async function searchVersesInAngCohort(
     embedding,
     anchorAng,
     anchorOrderId,
-    excludeVerseId: input.excludeVerseId?.trim() || null
+    excludeVerseId: input.excludeVerseId?.trim() || null,
+    forwardLimit: LIVE_ANG_COHORT_FORWARD_LIMIT
   });
 
   if (!rows.length) {
@@ -632,12 +662,14 @@ export async function searchVersesInAngCohort(
     anchorOrderId
   );
 
-  const best = ranked[0];
-  if (!best || best.lexicalTier < 1) {
-    return [];
+  const lexicalPool = ranked.filter((row) => row.lexicalTier >= 1);
+  if (!lexicalPool.length) {
+    return ranked.slice(0, safeLimit).map((row) =>
+      rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
+    );
   }
 
-  return ranked.slice(0, safeLimit).map((row) =>
+  return lexicalPool.map((row) =>
     rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
   );
 }
@@ -645,7 +677,6 @@ export async function searchVersesInAngCohort(
 export type LiveAnchoredSearchMode =
   | "ang-cohort"
   | "next-ang"
-  | "ang-unmatched"
   | "ang-exhausted";
 
 /**
@@ -690,7 +721,7 @@ export async function searchVersesLiveAnchored(
 
     const forwardRemaining = await deps.countForwardVersesOnAngFn(ang, orderId);
     if (forwardRemaining > 0) {
-      return { results: [], mode: "ang-unmatched" };
+      return { results: [], mode: "ang-cohort" };
     }
 
     ang += 1;
