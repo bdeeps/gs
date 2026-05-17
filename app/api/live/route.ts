@@ -61,8 +61,8 @@ async function resolveLiveSearch(
     if (picked.length) {
       return { candidates: picked, mode: anchored.mode };
     }
-    const global = await searchVersesLive(query, 3);
-    picked = pickBestLiveResult(global);
+    const global = await searchVersesLive(query, 5);
+    picked = pickBestLiveResult(global.filter(v => v.id !== ctx.lastMatchedVerseId));
     if (picked.length) {
       console.log("[live] narrowed ang window — global re-locate fallback");
       return { candidates: picked, mode: `${anchored.mode}-global-fallback` };
@@ -70,8 +70,8 @@ async function resolveLiveSearch(
     return { candidates: [], mode: anchored.mode };
   }
 
-  const global = await searchVersesLive(query, 3);
-  const picked = pickBestLiveResult(global);
+  const global = await searchVersesLive(query, 5);
+  const picked = pickBestLiveResult(global.filter(v => v.id !== ctx.lastMatchedVerseId));
   return { candidates: picked, mode: picked.length ? "global-bootstrap" : "global-bootstrap-empty" };
 }
 

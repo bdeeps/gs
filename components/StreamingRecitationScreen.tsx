@@ -13,7 +13,7 @@ const FIRST_SEGMENT_MS = 3_000;
 const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 384;
 const MIN_SCORE_TO_SHOW = 0.95;
-const ROLLING_TRANSCRIPT_MAX_CHARS = 400;
+const ROLLING_TRANSCRIPT_MAX_CHARS = 120;
 
 function shouldShowLiveVerse(verse: VerseSearchResult | undefined): verse is VerseSearchResult {
   if (!verse) return false;
@@ -327,8 +327,13 @@ export function StreamingRecitationScreen({
           if (signal?.aborted || sessionId !== currentSessionIdRef.current) break;
           if (text) {
             setLiveTranscript(text);
-            const combined = `${rollingTranscriptRef.current} ${text}`.trim();
-            rollingTranscriptRef.current = combined.slice(-ROLLING_TRANSCRIPT_MAX_CHARS);
+            const isMatch = results?.[0] && shouldShowLiveVerse(results[0]);
+            if (isMatch) {
+              rollingTranscriptRef.current = "";
+            } else {
+              const combined = `${rollingTranscriptRef.current} ${text}`.trim();
+              rollingTranscriptRef.current = combined.slice(-ROLLING_TRANSCRIPT_MAX_CHARS);
+            }
             setPhase("searching");
             appendIfNewVerse(results?.[0], text);
           }
