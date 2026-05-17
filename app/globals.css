@@ -71,3 +71,7 @@ textarea {
 .animate-fade-in {
   animation: fade-in 500ms ease-out both;
 }
+
+.text-balance {
+  text-wrap: balance;
+}

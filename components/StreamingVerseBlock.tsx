@@ -2,7 +2,6 @@ import type { VerseSearchResult } from "@/lib/types";
 import { toDisplayGurmukhi } from "@/lib/gurbaniScript";
 import type { CardStyle, DisplayTemplate, FontScale } from "@/lib/app-settings";
 
-// "hero" means single-verse centered mode; "timeline" means scrolling list mode
 type DisplayVariant = "timeline" | "hero";
 
 type StreamingVerseBlockProps = {
@@ -29,20 +28,20 @@ export function StreamingVerseBlock({
     verse.ang ? `Ang ${verse.ang}` : null,
     verse.raag ?? null,
     verse.author ?? null,
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean).join(" \u00B7 ");
 
   const heroPunjabiSize =
     fontScale === "projection"
-      ? "text-4xl sm:text-6xl"
+      ? "text-5xl sm:text-7xl"
       : fontScale === "xlarge"
-        ? "text-3xl sm:text-5xl"
-        : "text-2xl sm:text-4xl";
+        ? "text-4xl sm:text-6xl"
+        : "text-3xl sm:text-5xl";
   const heroEnglishSize =
     fontScale === "projection"
-      ? "text-3xl sm:text-5xl"
+      ? "text-2xl sm:text-4xl"
       : fontScale === "xlarge"
-        ? "text-2xl sm:text-4xl"
-        : "text-xl sm:text-3xl";
+        ? "text-xl sm:text-3xl"
+        : "text-lg sm:text-2xl";
   const timelinePunjabiSize =
     fontScale === "projection"
       ? "text-3xl sm:text-5xl"
@@ -50,82 +49,114 @@ export function StreamingVerseBlock({
         ? "text-2xl sm:text-4xl"
         : "text-xl sm:text-3xl";
   const timelineEnglishSize =
-    fontScale === "projection" ? "text-lg sm:text-xl" : fontScale === "xlarge" ? "text-base sm:text-lg" : "text-sm sm:text-base";
+    fontScale === "projection"
+      ? "text-lg sm:text-xl"
+      : fontScale === "xlarge"
+        ? "text-base sm:text-lg"
+        : "text-sm sm:text-base";
 
   const cardClass =
     cardStyle === "none"
       ? ""
       : cardStyle === "elevated"
-        ? "rounded-2xl border border-orange-100 bg-white shadow-md"
-        : "rounded-2xl border border-orange-100 bg-white/95 shadow-sm";
+        ? "rounded-2xl border border-orange-100/80 bg-white shadow-lg"
+        : "rounded-2xl border border-orange-100/60 bg-white/97 shadow-sm";
 
   if (isHero) {
     return (
-      <div className={["animate-fade-in mx-auto w-full px-6 py-10 sm:px-12 sm:py-14", cardClass].join(" ").trim()}>
-        {/* DB verse — large Punjabi */}
+      <div className={[
+        "animate-fade-in mx-auto w-full px-8 py-12 sm:px-16 sm:py-20",
+        cardClass
+      ].join(" ").trim()}>
         <p
           lang="pa"
-          className={`text-center font-gurmukhi leading-snug break-words text-stone-950 ${heroPunjabiSize}`}
+          className={[
+            "text-center font-gurmukhi leading-relaxed text-stone-950",
+            "text-balance",
+            heroPunjabiSize
+          ].join(" ")}
         >
           {gurmukhiDisplay}
         </p>
 
-        {/* DB English translation */}
         {verse.translation ? (
-          <p lang="en" className={`mt-5 text-center font-medium leading-snug break-words text-stone-600 ${heroEnglishSize}`}>
+          <p
+            lang="en"
+            className={[
+              "mt-6 text-center font-serif font-normal italic leading-relaxed text-stone-500",
+              "text-balance",
+              heroEnglishSize
+            ].join(" ")}
+          >
             {verse.translation}
           </p>
         ) : (
-          <p lang="en" className="mt-5 text-center text-base text-stone-400">
+          <p lang="en" className="mt-6 text-center text-base text-stone-400">
             English translation unavailable for this verse.
           </p>
         )}
 
-        {/* Metadata — ang / raag / author */}
         {meta ? (
-          <p className="mt-5 text-center text-sm font-medium text-stone-400">
+          <p className="mt-6 text-center text-sm font-light tracking-wide text-stone-400">
             {meta}
           </p>
         ) : null}
 
-        {/* What was heard — secondary context */}
         {heardPunjabi ? (
-          <p lang="pa" className="mt-5 border-t border-orange-100 pt-4 text-center font-gurmukhi text-base text-stone-400 sm:text-lg">
-            ਸੁਣਿਆ: {heardPunjabi}
-          </p>
+          <div className="mx-auto mt-8 max-w-xl border-t border-orange-100/60 pt-5">
+            <p lang="pa" className="text-center font-gurmukhi text-base leading-relaxed text-stone-400 sm:text-lg">
+              <span className="mr-1 text-xs font-medium uppercase tracking-widest text-stone-300">Heard</span>{" "}
+              {heardPunjabi}
+            </p>
+          </div>
         ) : null}
       </div>
     );
   }
 
   return (
-    <div className={["animate-fade-in px-4 py-4 sm:py-5", cardClass, template === "seva_stream" ? "bg-transparent shadow-none border-none" : ""].join(" ").trim()}>
+    <div className={[
+      "animate-fade-in px-6 py-6 sm:px-8 sm:py-8",
+      cardClass,
+      template === "seva_stream" ? "bg-transparent shadow-none border-none" : ""
+    ].join(" ").trim()}>
       <p
         lang="pa"
-        className={`text-center font-gurmukhi leading-snug break-words text-stone-950 ${timelinePunjabiSize}`}
+        className={[
+          "text-center font-gurmukhi leading-relaxed text-stone-950",
+          "text-balance",
+          timelinePunjabiSize
+        ].join(" ")}
       >
         {gurmukhiDisplay}
       </p>
 
       {verse.translation ? (
-        <p lang="en" className={`mt-2 text-center leading-snug break-words text-stone-500 ${timelineEnglishSize}`}>
+        <p
+          lang="en"
+          className={[
+            "mt-3 text-center font-serif italic leading-relaxed text-stone-500",
+            "text-balance",
+            timelineEnglishSize
+          ].join(" ")}
+        >
           {verse.translation}
         </p>
       ) : null}
 
       {verse.translationHi ? (
-        <p lang="hi" className="mt-1 text-center text-sm leading-snug text-stone-400 sm:text-base">
+        <p lang="hi" className="mt-2 text-center text-sm leading-relaxed text-stone-400 sm:text-base text-balance">
           {verse.translationHi}
         </p>
       ) : null}
 
       {meta ? (
-        <p className="mt-2 text-center text-[10px] font-medium tracking-widest text-stone-300 uppercase sm:text-[11px]">
+        <p className="mt-3 text-center text-[10px] font-light tracking-[0.2em] text-stone-300 uppercase sm:text-[11px]">
           {meta}
         </p>
       ) : null}
 
-      <div className="mx-auto mt-4 h-px w-12 bg-orange-200/50" aria-hidden />
+      <div className="mx-auto mt-5 h-px w-16 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" aria-hidden />
     </div>
   );
 }

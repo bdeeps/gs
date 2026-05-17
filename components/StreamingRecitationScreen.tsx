@@ -10,7 +10,7 @@ import { StreamingVerseBlock } from "@/components/StreamingVerseBlock";
 
 const FIRST_SEGMENT_MS = 3_000;
 const SEGMENT_MS = 3_000;
-const MIN_TRANSCRIBE_BYTES = 4_096;
+const MIN_TRANSCRIBE_BYTES = 1_024;
 const MIN_SCORE_TO_SHOW = 0.95;
 
 export type StreamingRecitationCopy = {
@@ -119,6 +119,7 @@ export function StreamingRecitationScreen({
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const lastVerseRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
+  const lastMatchedVerseRef = useRef<VerseSearchResult | null>(null);
 
   /* ── cleanup helpers ─────────────────────────────────────── */
 
@@ -156,6 +157,7 @@ export function StreamingRecitationScreen({
     chunksRef.current = [];
     processInFlightRef.current = false;
     queuedBlobRef.current = null;
+    lastMatchedVerseRef.current = null;
     stopMic();
     releaseWakeLock();
     setRecording(false);
@@ -240,6 +242,7 @@ export function StreamingRecitationScreen({
         setTimeout(() => fetchHindi(key, verse.translation!), 0);
       }
       const entry = { key, verse, heardTranscript: heard.trim().slice(0, 400) };
+      lastMatchedVerseRef.current = verse;
       if (effectiveVerseMode === "single") {
         return [entry];
       }
@@ -257,6 +260,19 @@ export function StreamingRecitationScreen({
   const liveSearch = useCallback(async (blob: Blob, signal?: AbortSignal): Promise<LiveResponse> => {
     const formData = new FormData();
     formData.append("audio", blob, filenameForAudioBlob(blob));
+    const lastMatched = lastMatchedVerseRef.current;
+    if (lastMatched?.id) {
+      formData.append("lastMatchedVerseId", lastMatched.id);
+    }
+    if (typeof lastMatched?.orderId === "number") {
+      formData.append("lastMatchedOrderId", String(lastMatched.orderId));
+    }
+    if (typeof lastMatched?.ang === "number") {
+      formData.append("lastMatchedAng", String(lastMatched.ang));
+    }
+    if (typeof lastMatched?.score === "number") {
+      formData.append("lastMatchedScore", String(lastMatched.score));
+    }
     const res = await fetch("/api/live", { method: "POST", body: formData, signal });
     const payload = (await res.json()) as LiveResponse;
     if (!res.ok) throw new Error(payload.error || "Live search failed.");
@@ -531,8 +547,8 @@ export function StreamingRecitationScreen({
           </div>
         ) : isSingleMode ? (
           /* Single-verse hero: always exactly 1 entry, vertically + horizontally centered */
-          <div className="flex min-h-full items-center justify-center px-4 py-8">
-            <div className="w-full max-w-[96vw] xl:max-w-[1800px]">
+          <div className="flex min-h-full items-center justify-center px-6 py-10 sm:px-12">
+            <div className="w-full max-w-5xl">
               {timeline.slice(-1).map((entry) => (
                 <div key={entry.key} ref={lastVerseRef}>
                   <StreamingVerseBlock
@@ -548,7 +564,7 @@ export function StreamingRecitationScreen({
             </div>
           </div>
         ) : isTwoMode ? (
-          <div className="mx-auto w-full max-w-6xl px-4 py-6">
+          <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8">
             {/*
               Use a stable local array so "last item" ref is correct
               even when the timeline is sliced to two entries.
@@ -581,7 +597,7 @@ export function StreamingRecitationScreen({
           </div>
         ) : (
           /* Timeline mode: scrolling list */
-          <div className="mx-auto w-full max-w-[96vw] xl:max-w-[1800px]">
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-8">
             {timeline.map((entry, i) => (
               <div key={entry.key} ref={i === timeline.length - 1 ? lastVerseRef : undefined}>
                 <StreamingVerseBlock

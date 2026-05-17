@@ -42,6 +42,9 @@ test("searchVerses returns exact text match as top result", async () => {
           score: 0.42
         }
       ];
+    },
+    async fetchRowsNearOrderFn() {
+      return [];
     }
   });
 
@@ -87,6 +90,9 @@ test("searchVerses falls back to semantic ordering when lexical tiers are absent
           score: 0.95
         }
       ];
+    },
+    async fetchRowsNearOrderFn() {
+      return [];
     }
   });
 
@@ -157,6 +163,9 @@ test("searchVerses normalizes unicode query before embedding and row filtering",
           score: 0.41
         }
       ];
+    },
+    async fetchRowsNearOrderFn() {
+      return [];
     }
   });
 
