@@ -176,13 +176,15 @@ type MatchTier = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 function lexicalTierForRow(
   row: Pick<VerseRow, "gurmukhi" | "transliteration" | "translation">,
   normalizedAsciiQuery: string | null,
-  normalizedCleanQuery: string | null
+  normalizedCleanQuery: string | null,
+  minContainmentChars = 8
 ): MatchTier {
   const gurmukhiNorm = normalizeSearchText(row.gurmukhi);
   const transliterationNorm = normalizeSearchText(row.transliteration ?? "");
   const translationNorm = normalizeSearchText(row.translation ?? "");
   const containsEither = (left: string, right: string) =>
-    left.includes(right) || (right.length >= 8 && right.includes(left));
+    left.includes(right) ||
+    (right.length >= minContainmentChars && right.includes(left));
 
   if (normalizedAsciiQuery && gurmukhiNorm === normalizedAsciiQuery) return 6;
   if (normalizedCleanQuery && transliterationNorm === normalizedCleanQuery) return 5;
@@ -223,11 +225,13 @@ function displayScoreForTier(tier: MatchTier, semanticScore: number) {
   }
 }
 
-function containmentSpan(fieldNorm: string, queryNorm: string | null) {
+function containmentSpan(fieldNorm: string, queryNorm: string | null, minContainmentChars = 8) {
   if (!queryNorm || !fieldNorm) return 0;
   if (fieldNorm === queryNorm) return fieldNorm.length;
   if (fieldNorm.includes(queryNorm)) return queryNorm.length;
-  if (queryNorm.length >= 8 && queryNorm.includes(fieldNorm)) return fieldNorm.length;
+  if (queryNorm.length >= minContainmentChars && queryNorm.includes(fieldNorm)) {
+    return fieldNorm.length;
+  }
   return 0;
 }
 
@@ -236,19 +240,31 @@ type RankableCandidate = Pick<VerseRow, "gurmukhi" | "transliteration" | "transl
 export function rankVerseCandidates<T extends RankableCandidate>(
   candidates: T[],
   normalizedAsciiQuery: string | null,
-  normalizedCleanQuery: string | null
+  normalizedCleanQuery: string | null,
+  minContainmentChars = 8
 ) {
   return [...candidates]
     .map((candidate) => {
-      const tier = lexicalTierForRow(candidate, normalizedAsciiQuery, normalizedCleanQuery);
-      const gurmukhiSpan = containmentSpan(normalizeSearchText(candidate.gurmukhi), normalizedAsciiQuery);
+      const tier = lexicalTierForRow(
+        candidate,
+        normalizedAsciiQuery,
+        normalizedCleanQuery,
+        minContainmentChars
+      );
+      const gurmukhiSpan = containmentSpan(
+        normalizeSearchText(candidate.gurmukhi),
+        normalizedAsciiQuery,
+        minContainmentChars
+      );
       const transliterationSpan = containmentSpan(
         normalizeSearchText(candidate.transliteration ?? ""),
-        normalizedCleanQuery
+        normalizedCleanQuery,
+        minContainmentChars
       );
       const translationSpan = containmentSpan(
         normalizeSearchText(candidate.translation ?? ""),
-        normalizedCleanQuery
+        normalizedCleanQuery,
+        minContainmentChars
       );
       const matchSpan =
         tier === 6 || tier === 3
@@ -289,6 +305,7 @@ type SearchVersesDeps = {
   embedQueryFn: (input: string) => Promise<number[]>;
   fetchRowsFn: (inputs: SearchQueryInputs) => Promise<VerseRow[]>;
   fetchRowsNearOrderFn: (inputs: SearchNearOrderInputs) => Promise<VerseRow[]>;
+  fetchVerseByOrderFn: (orderId: number) => Promise<VerseRow | null>;
 };
 
 type SearchNearOrderInputs = {
@@ -317,6 +334,57 @@ const SEARCH_VERSES_NEAR_ORDER_SQL = `
   ORDER BY order_id ASC
 `;
 
+const FETCH_VERSE_BY_ORDER_SQL = `
+  SELECT
+    id,
+    source,
+    shabad_id,
+    gurmukhi,
+    transliteration,
+    translation,
+    ang,
+    raag,
+    author,
+    order_id,
+    1::float8 AS semantic_score,
+    1::float8 AS score
+  FROM verses
+  WHERE order_id = $1::int
+  LIMIT 1
+`;
+
+export const LIVE_MIN_SCORE = 0.95;
+export const LIVE_MIN_CONTAINMENT_CHARS = 4;
+
+function rowToVerseResult(
+  row: VerseRow & { lexicalTier?: number; displayScore?: number },
+  extras?: { sequentialAdvance?: boolean }
+): VerseSearchResult {
+  return {
+    id: row.id,
+    source: row.source,
+    shabadId: row.shabad_id,
+    gurmukhi: row.gurmukhi,
+    transliteration: row.transliteration,
+    translation: row.translation,
+    translationHi: null,
+    ang: row.ang,
+    raag: row.raag,
+    author: row.author,
+    orderId: row.order_id,
+    score: Number(row.displayScore ?? row.score),
+    lexicalTier: row.lexicalTier,
+    sequentialAdvance: extras?.sequentialAdvance
+  };
+}
+
+export function isAcceptableLiveMatch(verse: VerseSearchResult | undefined): boolean {
+  if (!verse) return false;
+  if (verse.sequentialAdvance) return true;
+  if (verse.score >= LIVE_MIN_SCORE) return true;
+  return (verse.lexicalTier ?? 0) >= 3;
+}
+
 const defaultSearchDeps: SearchVersesDeps = {
   embedQueryFn: embedQuery,
   async fetchRowsFn(inputs) {
@@ -339,13 +407,18 @@ const defaultSearchDeps: SearchVersesDeps = {
       inputs.afterWindow
     ]);
     return rows;
+  },
+  async fetchVerseByOrderFn(orderId) {
+    const { rows } = await getPool().query<VerseRow>(FETCH_VERSE_BY_ORDER_SQL, [orderId]);
+    return rows[0] ?? null;
   }
 };
 
 export async function searchVersesWithDeps(
   query: string,
   limit = DEFAULT_SEARCH_LIMIT,
-  deps: SearchVersesDeps
+  deps: SearchVersesDeps,
+  minContainmentChars = 8
 ): Promise<VerseSearchResult[]> {
   const cleanQuery = query.trim();
   if (!cleanQuery) {
@@ -379,29 +452,36 @@ export async function searchVersesWithDeps(
     outputCandidateLimit
   });
 
-  const rankedRows = rankVerseCandidates(rows, normalizedAsciiQuery, normalizedCleanQuery).slice(
-    0,
-    safeLimit
-  );
+  const rankedRows = rankVerseCandidates(
+    rows,
+    normalizedAsciiQuery,
+    normalizedCleanQuery,
+    minContainmentChars
+  ).slice(0, safeLimit);
 
-  return rankedRows.map((row) => ({
-    id: row.id,
-    source: row.source,
-    shabadId: row.shabad_id,
-    gurmukhi: row.gurmukhi,
-    transliteration: row.transliteration,
-    translation: row.translation,
-    translationHi: null,
-    ang: row.ang,
-    raag: row.raag,
-    author: row.author,
-    orderId: row.order_id,
-    score: Number(row.displayScore)
-  }));
+  return rankedRows.map((row) =>
+    rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
+  );
 }
 
-export async function searchVerses(query: string, limit = DEFAULT_SEARCH_LIMIT): Promise<VerseSearchResult[]> {
-  return searchVersesWithDeps(query, limit, defaultSearchDeps);
+export async function searchVerses(
+  query: string,
+  limit = DEFAULT_SEARCH_LIMIT,
+  options?: { minContainmentChars?: number }
+): Promise<VerseSearchResult[]> {
+  return searchVersesWithDeps(
+    query,
+    limit,
+    defaultSearchDeps,
+    options?.minContainmentChars ?? 8
+  );
+}
+
+export async function searchVersesLive(
+  query: string,
+  limit = DEFAULT_SEARCH_LIMIT
+): Promise<VerseSearchResult[]> {
+  return searchVerses(query, limit, { minContainmentChars: LIVE_MIN_CONTAINMENT_CHARS });
 }
 
 export async function searchVersesNearOrder(
@@ -438,31 +518,55 @@ export async function searchVersesNearOrder(
     afterWindow
   });
 
-  const ranked = rankVerseCandidates(rows, normalizedAsciiQuery, normalizedCleanQuery);
+  if (!rows.length) {
+    return [];
+  }
+
+  const ranked = rankVerseCandidates(
+    rows,
+    normalizedAsciiQuery,
+    normalizedCleanQuery,
+    LIVE_MIN_CONTAINMENT_CHARS
+  );
 
   const nextExpectedOrderId = anchorOrderId + 1;
   ranked.sort(
     (a, b) =>
       b.lexicalTier - a.lexicalTier ||
       b.matchSpan - a.matchSpan ||
-      proximityScore(a.order_id, nextExpectedOrderId) - proximityScore(b.order_id, nextExpectedOrderId) ||
+      proximityScore(a.order_id, nextExpectedOrderId) -
+        proximityScore(b.order_id, nextExpectedOrderId) ||
       b.semantic_score - a.semantic_score
   );
 
-  return ranked.slice(0, safeLimit).map((row) => ({
-    id: row.id,
-    source: row.source,
-    shabadId: row.shabad_id,
-    gurmukhi: row.gurmukhi,
-    transliteration: row.transliteration,
-    translation: row.translation,
-    translationHi: null,
-    ang: row.ang,
-    raag: row.raag,
-    author: row.author,
-    orderId: row.order_id,
-    score: Number(row.displayScore)
-  }));
+  const best = ranked[0];
+  if (!best || best.lexicalTier < 1) {
+    return [];
+  }
+
+  return ranked.slice(0, safeLimit).map((row) =>
+    rowToVerseResult({ ...row, score: row.displayScore, displayScore: row.displayScore })
+  );
+}
+
+export async function getNextVerseAfterOrder(
+  anchorOrderId: number,
+  deps: SearchVersesDeps = defaultSearchDeps
+): Promise<VerseSearchResult | null> {
+  const nextOrderId = Math.floor(anchorOrderId) + 1;
+  if (!Number.isFinite(nextOrderId) || nextOrderId <= 0) {
+    return null;
+  }
+
+  const row = await deps.fetchVerseByOrderFn(nextOrderId);
+  if (!row) {
+    return null;
+  }
+
+  return rowToVerseResult(
+    { ...row, displayScore: 0.99, lexicalTier: 6 },
+    { sequentialAdvance: true }
+  );
 }
 
 function proximityScore(orderId: number | null, target: number): number {

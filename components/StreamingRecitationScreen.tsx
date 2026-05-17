@@ -13,6 +13,13 @@ const SEGMENT_MS = 3_000;
 const MIN_TRANSCRIBE_BYTES = 1_024;
 const MIN_SCORE_TO_SHOW = 0.95;
 
+function shouldShowLiveVerse(verse: VerseSearchResult | undefined): boolean {
+  if (!verse) return false;
+  if (verse.sequentialAdvance) return true;
+  if (verse.score >= MIN_SCORE_TO_SHOW) return true;
+  return (verse.lexicalTier ?? 0) >= 3;
+}
+
 export type StreamingRecitationCopy = {
   title: string;
   subtitle: string;
@@ -234,7 +241,7 @@ export function StreamingRecitationScreen({
   /* ── verse dedup + append ────────────────────────────────── */
 
   const appendIfNewVerse = useCallback((verse: VerseSearchResult | undefined, heard: string) => {
-    if (!verse || verse.score < MIN_SCORE_TO_SHOW) return;
+    if (!shouldShowLiveVerse(verse)) return;
     setTimeline((prev) => {
       if (prev[prev.length - 1]?.verse.id === verse.id) return prev;
       const key = `${verse.id}-${prev.length}-${Date.now()}`;

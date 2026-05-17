@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { incrementAppMetrics } from "@/lib/app-metrics";
 import { MAX_AUDIO_BYTES, trimForSearch } from "@/lib/config";
-import { searchVerses, searchVersesNearOrder } from "@/lib/search";
+import {
+  getNextVerseAfterOrder,
+  isAcceptableLiveMatch,
+  LIVE_MIN_SCORE,
+  searchVersesLive,
+  searchVersesNearOrder
+} from "@/lib/search";
 import { transcribeAudioLive, TranscriptionError } from "@/lib/transcribe";
 import type { VerseSearchResult } from "@/lib/types";
 
@@ -15,14 +21,19 @@ function parseOptionalNumber(value: FormDataEntryValue | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function pickBestLiveResult(candidates: VerseSearchResult[]): VerseSearchResult[] {
+  const acceptable = candidates.filter(isAcceptableLiveMatch);
+  if (!acceptable.length) {
+    return [];
+  }
+  return [acceptable[0]];
+}
+
 /**
  * Combined live endpoint: audio in → transcription + top verse out.
- * Eliminates the client round-trip between /api/transcribe and /api/search
- * so the verse reaches the screen as fast as possible.
  */
 export async function POST(request: Request) {
   const startedAt = Date.now();
-  // Count every live request so dashboard reflects real stream cadence.
   void incrementAppMetrics({ totalLiveRequests: 1 });
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > MAX_AUDIO_BYTES + 1_000_000) {
@@ -81,34 +92,48 @@ export async function POST(request: Request) {
         Number.isInteger(lastMatchedOrderId) &&
         lastMatchedOrderId > 0 &&
         typeof lastMatchedScore === "number" &&
-        lastMatchedScore >= 0.95;
+        lastMatchedScore >= LIVE_MIN_SCORE;
 
-      let results: VerseSearchResult[] = [];
-      let searchMode: "sequential" | "global" = "global";
+      let candidates: VerseSearchResult[] = [];
+      let searchMode: "sequential" | "sequential-advance" | "global" = "global";
 
       if (canUseSequentialAnchor) {
         const sequential = await searchVersesNearOrder(query, {
           anchorOrderId: lastMatchedOrderId,
-          limit: 1,
-          beforeWindow: 6,
-          afterWindow: 140
+          limit: 3,
+          beforeWindow: 2,
+          afterWindow: 24
         });
-        if ((sequential[0]?.score ?? 0) >= 0.95) {
-          results = sequential;
+        const sequentialPick = pickBestLiveResult(sequential);
+        if (sequentialPick.length) {
+          candidates = sequentialPick;
           searchMode = "sequential";
+        } else {
+          const advanced = await getNextVerseAfterOrder(lastMatchedOrderId);
+          if (advanced) {
+            candidates = [advanced];
+            searchMode = "sequential-advance";
+          }
         }
       }
 
-      if (!results.length) {
-        results = await searchVerses(query, 1);
+      if (!candidates.length) {
+        const global = await searchVersesLive(query, 3);
+        candidates = pickBestLiveResult(global);
+        searchMode = "global";
       }
+
+      const results = candidates.slice(0, 1);
       const searchMs = Date.now() - searchStartedAt;
-      const topScore = results[0]?.score ?? 0;
+      const top = results[0];
+      const topScore = top?.score ?? 0;
       console.log(
         "[live] top result score:",
         topScore.toFixed(4),
+        "tier:",
+        top?.lexicalTier ?? "n/a",
         "verse:",
-        results[0]?.gurmukhi?.slice(0, 60) ?? "none"
+        top?.gurmukhi?.slice(0, 60) ?? "none"
       );
       console.log(
         "[live] timings ms:",
@@ -127,7 +152,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ text, results });
     } catch (searchError) {
       console.error("[live] search failed after transcription:", searchError);
-      // Keep session alive for tab audio/music even if embedding/search backend is flaky.
       return NextResponse.json({ text, results: [] as VerseSearchResult[] });
     }
   } catch (error) {

@@ -3,8 +3,8 @@ import { TRANSCRIPTION_TIMEOUT_MS } from "./config";
 import { fetchWithTimeout, isAbortError } from "./http";
 
 const SARVAM_TIMEOUT_MS = 20_000;
-const LIVE_SARVAM_TIMEOUT_MS = 6_000;
-const LIVE_WHISPER_TIMEOUT_MS = 10_000;
+const LIVE_SARVAM_TIMEOUT_MS = 8_000;
+const LIVE_WHISPER_TIMEOUT_MS = 14_000;
 
 /**
  * Whisper echoes fragments of its own prompt when it hears silence or noise.

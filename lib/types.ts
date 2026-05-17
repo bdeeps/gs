@@ -14,6 +14,8 @@ export type Verse = {
 
 export type VerseSearchResult = Verse & {
   score: number;
+  lexicalTier?: number;
+  sequentialAdvance?: boolean;
 };
 
 export type SearchResponse = {
