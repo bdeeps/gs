@@ -101,6 +101,7 @@ export function StreamingRecitationScreen({
   const isTwoMode = effectiveVerseMode === "two";
   const isStreamingMode = effectiveVerseMode === "streaming";
   const streamRef = useRef<MediaStream | null>(null);
+  const [waveformStream, setWaveformStream] = useState<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const mimeRef = useRef<string>("audio/webm");
@@ -147,6 +148,7 @@ export function StreamingRecitationScreen({
   const stopMic = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    setWaveformStream(null);
   }, []);
 
   const releaseWakeLock = useCallback(() => {
@@ -423,6 +425,7 @@ export function StreamingRecitationScreen({
         return;
       }
       streamRef.current = stream;
+      setWaveformStream(stream);
       abortRef.current = new AbortController();
       const track = stream.getAudioTracks()[0];
       if (track) {
@@ -481,7 +484,7 @@ export function StreamingRecitationScreen({
 
         <div className="mx-2 h-8 min-w-0 flex-1 overflow-hidden rounded-lg bg-stone-100/80 sm:h-9">
           {recording ? (
-            <AudioWaveform stream={streamRef.current} active={recording} />
+            <AudioWaveform stream={waveformStream} active={recording} />
           ) : (
             <div className="flex h-full items-center justify-center">
               <span className="text-[10px] tracking-wider text-stone-300">WAVEFORM</span>

@@ -76,6 +76,15 @@ async function prepareDatabase() {
     console.log("Acquiring startup seed lock...");
     await pool.query("SELECT pg_advisory_lock($1)", [STARTUP_LOCK_KEY]);
 
+    if (process.env.SKIP_STARTUP_SEED === "1") {
+      const verseCount = await getVerseCount();
+      console.log(
+        `SKIP_STARTUP_SEED=1 — not seeding on startup (${verseCount} verses in DB). ` +
+          "Run manually: bash scripts/seed-cli.sh --sggs"
+      );
+      return;
+    }
+
     const verseCount = await getVerseCount();
     if (verseCount > 0) {
       console.log(`Database already has ${verseCount} Gurbani verses. Skipping seed.`);

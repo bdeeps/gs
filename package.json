@@ -15,7 +15,9 @@
     "test": "NODE_ENV=test tsx --test tests/*.test.ts",
     "db:schema": "node scripts/apply-schema.mjs",
     "db:seed": "tsx scripts/seed.ts",
-    "db:seed:sggs": "SEED_SOURCE_ID=1 tsx scripts/seed.ts"
+    "db:seed:sggs": "SEED_SOURCE_ID=1 tsx scripts/seed.ts",
+    "db:seed:cli": "bash scripts/seed-cli.sh --sggs",
+    "db:seed:cli:all": "bash scripts/seed-cli.sh --all"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
