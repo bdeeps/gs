@@ -101,12 +101,7 @@ export function StreamingRecitationScreen({
   const isTwoMode = effectiveVerseMode === "two";
   const isStreamingMode = effectiveVerseMode === "streaming";
   const streamRef = useRef<MediaStream | null>(null);
-  const audioMonitorRef = useRef<{
-    ctx: AudioContext;
-    source: MediaStreamAudioSourceNode;
-    analyser: AnalyserNode;
-  } | null>(null);
-  const [waveformAnalyser, setWaveformAnalyser] = useState<AnalyserNode | null>(null);
+  const [waveformStream, setWaveformStream] = useState<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const mimeRef = useRef<string>("audio/webm");
@@ -150,41 +145,11 @@ export function StreamingRecitationScreen({
     if (cycleTimerRef.current) { clearInterval(cycleTimerRef.current); cycleTimerRef.current = null; }
   }, []);
 
-  const detachAudioMonitor = useCallback(async () => {
-    const monitor = audioMonitorRef.current;
-    if (!monitor) {
-      setWaveformAnalyser(null);
-      return;
-    }
-    monitor.source.disconnect();
-    monitor.analyser.disconnect();
-    audioMonitorRef.current = null;
-    setWaveformAnalyser(null);
-    if (monitor.ctx.state !== "closed") {
-      await monitor.ctx.close().catch(() => undefined);
-    }
-  }, []);
-
-  const attachAudioMonitor = useCallback(async (stream: MediaStream) => {
-    await detachAudioMonitor();
-    const ctx = new AudioContext();
-    if (ctx.state === "suspended") {
-      await ctx.resume().catch(() => undefined);
-    }
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0.55;
-    const source = ctx.createMediaStreamSource(stream);
-    source.connect(analyser);
-    audioMonitorRef.current = { ctx, source, analyser };
-    setWaveformAnalyser(analyser);
-  }, [detachAudioMonitor]);
-
   const stopMic = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    void detachAudioMonitor();
-  }, [detachAudioMonitor]);
+    setWaveformStream(null);
+  }, []);
 
   const releaseWakeLock = useCallback(() => {
     wakeLockRef.current?.release().catch(() => {});
@@ -472,7 +437,7 @@ export function StreamingRecitationScreen({
         return;
       }
       streamRef.current = stream;
-      await attachAudioMonitor(stream);
+      setWaveformStream(stream);
       abortRef.current = new AbortController();
       const track = stream.getAudioTracks()[0];
       if (track) {
@@ -535,7 +500,7 @@ export function StreamingRecitationScreen({
 
         <div className="mx-2 h-8 min-w-0 flex-1 overflow-hidden rounded-lg bg-stone-100/80 sm:h-9">
           {recording ? (
-            <AudioWaveform analyser={waveformAnalyser} active={recording} />
+            <AudioWaveform stream={waveformStream} active={recording} />
           ) : (
             <div className="flex h-full items-center justify-center">
               <span className="text-[10px] tracking-wider text-stone-300">WAVEFORM</span>
