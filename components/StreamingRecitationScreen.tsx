@@ -101,7 +101,12 @@ export function StreamingRecitationScreen({
   const isTwoMode = effectiveVerseMode === "two";
   const isStreamingMode = effectiveVerseMode === "streaming";
   const streamRef = useRef<MediaStream | null>(null);
-  const [waveformStream, setWaveformStream] = useState<MediaStream | null>(null);
+  const audioMonitorRef = useRef<{
+    ctx: AudioContext;
+    source: MediaStreamAudioSourceNode;
+    analyser: AnalyserNode;
+  } | null>(null);
+  const [waveformAnalyser, setWaveformAnalyser] = useState<AnalyserNode | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const mimeRef = useRef<string>("audio/webm");
@@ -145,11 +150,41 @@ export function StreamingRecitationScreen({
     if (cycleTimerRef.current) { clearInterval(cycleTimerRef.current); cycleTimerRef.current = null; }
   }, []);
 
+  const detachAudioMonitor = useCallback(async () => {
+    const monitor = audioMonitorRef.current;
+    if (!monitor) {
+      setWaveformAnalyser(null);
+      return;
+    }
+    monitor.source.disconnect();
+    monitor.analyser.disconnect();
+    audioMonitorRef.current = null;
+    setWaveformAnalyser(null);
+    if (monitor.ctx.state !== "closed") {
+      await monitor.ctx.close().catch(() => undefined);
+    }
+  }, []);
+
+  const attachAudioMonitor = useCallback(async (stream: MediaStream) => {
+    await detachAudioMonitor();
+    const ctx = new AudioContext();
+    if (ctx.state === "suspended") {
+      await ctx.resume().catch(() => undefined);
+    }
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.55;
+    const source = ctx.createMediaStreamSource(stream);
+    source.connect(analyser);
+    audioMonitorRef.current = { ctx, source, analyser };
+    setWaveformAnalyser(analyser);
+  }, [detachAudioMonitor]);
+
   const stopMic = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    setWaveformStream(null);
-  }, []);
+    void detachAudioMonitor();
+  }, [detachAudioMonitor]);
 
   const releaseWakeLock = useCallback(() => {
     wakeLockRef.current?.release().catch(() => {});
@@ -400,11 +435,25 @@ export function StreamingRecitationScreen({
 
   async function acquireStream(source: "mic" | "tab"): Promise<MediaStream> {
     if (source === "tab") {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: true });
-      displayStream.getVideoTracks().forEach((t) => t.stop());
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        throw new Error("Tab audio capture is not supported in this browser.");
+      }
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: {
+          suppressLocalAudioPlayback: false
+        }
+      });
+      // Keep the video track alive but disabled — stopping it can kill tab audio in Chrome.
+      displayStream.getVideoTracks().forEach((track) => {
+        track.enabled = false;
+      });
       const audioTracks = displayStream.getAudioTracks();
-      if (!audioTracks.length) throw new Error("No audio in the shared tab.");
-      return new MediaStream(audioTracks);
+      if (!audioTracks.length) {
+        displayStream.getTracks().forEach((t) => t.stop());
+        throw new Error('No tab audio. Check "Share tab audio" in the browser picker.');
+      }
+      return displayStream;
     }
     return navigator.mediaDevices.getUserMedia({ audio: true });
   }
@@ -425,7 +474,7 @@ export function StreamingRecitationScreen({
         return;
       }
       streamRef.current = stream;
-      setWaveformStream(stream);
+      await attachAudioMonitor(stream);
       abortRef.current = new AbortController();
       const track = stream.getAudioTracks()[0];
       if (track) {
@@ -452,9 +501,13 @@ export function StreamingRecitationScreen({
         if (activeRef.current) { cycleTimerRef.current = setInterval(triggerCycle, SEGMENT_MS); }
       }, FIRST_SEGMENT_MS);
       setRecording(true);
-    } catch {
+    } catch (error) {
       fullCleanup();
-      setLocalError(source === "tab" ? "Could not capture tab audio." : copy.micBlocked);
+      const message = error instanceof Error ? error.message : null;
+      setLocalError(
+        message ||
+          (source === "tab" ? "Could not capture tab audio." : copy.micBlocked)
+      );
     }
   };
 
@@ -484,7 +537,7 @@ export function StreamingRecitationScreen({
 
         <div className="mx-2 h-8 min-w-0 flex-1 overflow-hidden rounded-lg bg-stone-100/80 sm:h-9">
           {recording ? (
-            <AudioWaveform stream={waveformStream} active={recording} />
+            <AudioWaveform analyser={waveformAnalyser} active={recording} />
           ) : (
             <div className="flex h-full items-center justify-center">
               <span className="text-[10px] tracking-wider text-stone-300">WAVEFORM</span>
