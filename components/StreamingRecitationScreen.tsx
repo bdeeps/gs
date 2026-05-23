@@ -440,9 +440,7 @@ export function StreamingRecitationScreen({
       }
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
-        audio: {
-          suppressLocalAudioPlayback: false
-        }
+        audio: true
       });
       // Keep the video track alive but disabled — stopping it can kill tab audio in Chrome.
       displayStream.getVideoTracks().forEach((track) => {

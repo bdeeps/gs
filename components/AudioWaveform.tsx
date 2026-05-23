@@ -15,13 +15,14 @@ const BAR_COUNT = 48;
 function drawBars(
   canvas: HTMLCanvasElement,
   analyser: AnalyserNode,
-  timeDomain: Uint8Array,
+  timeDomain: Uint8Array<ArrayBuffer>,
   rafRef: { current: number }
 ) {
   const ctx2d = canvas.getContext("2d");
   if (!ctx2d) {
     return;
   }
+  const ctx = ctx2d;
 
   function draw() {
     rafRef.current = requestAnimationFrame(draw);
@@ -35,8 +36,8 @@ function drawBars(
 
     canvas.width = Math.floor(cssW * dpr);
     canvas.height = Math.floor(cssH * dpr);
-    ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx2d.clearRect(0, 0, cssW, cssH);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
 
     analyser.getByteTimeDomainData(timeDomain);
 
@@ -60,13 +61,13 @@ function drawBars(
       const x = i * (barWidth + gap);
       const y = (cssH - barH) / 2;
 
-      const gradient = ctx2d.createLinearGradient(x, y, x, y + barH);
+      const gradient = ctx.createLinearGradient(x, y, x, y + barH);
       gradient.addColorStop(0, `rgba(234,88,12,${0.45 + amplitude * 0.55})`);
       gradient.addColorStop(1, `rgba(194,65,12,${0.25 + amplitude * 0.75})`);
-      ctx2d.fillStyle = gradient;
-      ctx2d.beginPath();
-      ctx2d.roundRect(x, y, barWidth, barH, barWidth / 2);
-      ctx2d.fill();
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barWidth, barH, barWidth / 2);
+      ctx.fill();
     }
   }
 
@@ -118,7 +119,7 @@ export function AudioWaveform({ analyser, stream, active, className = "" }: Audi
       return;
     }
 
-    const timeDomain = new Uint8Array(activeAnalyser.fftSize);
+    const timeDomain = new Uint8Array<ArrayBuffer>(new ArrayBuffer(activeAnalyser.fftSize));
     drawBars(canvas, activeAnalyser, timeDomain, rafRef);
 
     return () => {
